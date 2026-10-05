@@ -35,6 +35,14 @@ impl std::error::Error for DecodeError {}
 /// malformed bytes in a supported charset become U+FFFD.
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     let text = String::from_utf8_lossy(raw);
+    if !memchr::memchr2_iter(b'\n', b'=', text.as_bytes()).any(|offset| {
+        matches!(
+            &text.as_bytes()[offset..],
+            [b'=', b'?', ..] | [b'\n', b' ' | b'\t', ..]
+        )
+    }) {
+        return Ok(text);
+    }
     let unfolded = unfold(&text);
     if !has_encoded_word(&unfolded) {
         return Ok(match unfolded {
