@@ -4,7 +4,7 @@
 //! `compat32` policy. Values retain folding and encoded words; the body is opaque.
 //!
 //! ```
-//! use astral_email::Message;
+//! use astral_mail_headers::Message;
 //!
 //! let message = Message::parse(b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n");
 //! assert_eq!(message.first("name").unwrap().raw_value(), b"example");
@@ -61,7 +61,7 @@ impl<'a> Header<'a> {
     /// folding and encoded words. Unchanged ordinary UTF-8 values remain borrowed.
     /// Invalid text becomes U+FFFD. See the [decoding policy] for supported charsets.
     ///
-    /// [decoding policy]: https://github.com/viarius-experiments/astral-email/blob/main/docs/decoding.md
+    /// [decoding policy]: https://github.com/astral-sh/astral-mail-headers/blob/main/docs/decoding.md
     ///
     /// # Errors
     ///

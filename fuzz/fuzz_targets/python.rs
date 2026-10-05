@@ -1,6 +1,6 @@
 #![no_main]
 
-#[path = "../../crates/astral-email/tests/support/conformance.rs"]
+#[path = "../../crates/astral-mail-headers/tests/support/conformance.rs"]
 #[allow(dead_code)]
 mod conformance;
 

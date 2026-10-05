@@ -30,6 +30,6 @@ jobs:
           toolchain: '1.97.1'
       - run: python scripts/generate_conformance.py --check
       - run: python scripts/generate_decode_fixtures.py --check
-      - run: cargo build -p astral-email --example decode_inspect --locked
+      - run: cargo build -p astral-mail-headers --example decode_inspect --locked
       - run: python scripts/check_decode.py target/debug/examples/decode_inspect
       - run: cargo test --locked --test python --test uv

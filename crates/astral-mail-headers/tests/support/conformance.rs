@@ -1,4 +1,4 @@
-use astral_email::Message;
+use astral_mail_headers::Message;
 use serde_json::{Value, json};
 
 pub(super) fn decode_hex(input: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {

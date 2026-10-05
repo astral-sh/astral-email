@@ -1,4 +1,4 @@
-# astral-email
+# astral-mail-headers
 
 A read-only parser for Python packaging headers, written in Rust.
 
@@ -7,7 +7,7 @@ The parser targets the header and body-boundary behavior of Python's `email.pars
 The application chooses the allocator. MIME body parsing, writing, and mutation are outside the library's scope.
 
 ```rust
-use astral_email::Message;
+use astral_mail_headers::Message;
 
 let message = Message::parse(b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n");
 assert_eq!(message.first("name").unwrap().raw_value(), b"example");

@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use astral_email::DecodeError;
+use astral_mail_headers::DecodeError;
 use uv_pypi_types::{Metadata10, Metadata23, MetadataError, ResolutionMetadata};
 
 const HEADERS: &str = "Metadata-Version: 2.3\nName: demo\nVersion: 1.0\n";
