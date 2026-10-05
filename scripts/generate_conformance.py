@@ -162,7 +162,7 @@ def main() -> None:
     if args.stdin:
         for line in sys.stdin:
             request = json.loads(line)
-            print(json.dumps(inspect_message(bytes.fromhex(request["input_hex"]))))
+            print(json.dumps(inspect_message(bytes.fromhex(request["input_hex"]))), flush=True)
         return
     corpus = generate()
     output = json.dumps(corpus, indent=2) + "\n"

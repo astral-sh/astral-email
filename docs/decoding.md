@@ -1,53 +1,67 @@
 # Decoded header values
 
-`Header::raw_value` preserves bytes. `Header::decoded_value` is a separate,
-fallible convenience API:
+`Header::raw_value` preserves bytes according to the [raw parsing contract](conformance.md).
+`Header::decoded_value` is a separate, fallible convenience API:
 
 1. Decode ordinary bytes as UTF-8, replacing invalid sequences with U+FFFD.
-2. Unfold CRLF or LF followed by spaces or tabs into one space, removing the
-   continuation indentation. Other whitespace is preserved.
+2. Unfold CRLF or LF followed by spaces or tabs into one space.
 3. Decode RFC 2047 Q and B words using Python's `email.header.decode_header`
-   marker syntax. When encoded words occur, strip leading whitespace and ignore
-   whitespace between adjacent encoded words. Combine adjacent words with the
-   same charset before decoding their bytes.
-4. Convert supported charsets with replacement for malformed byte sequences.
+   marker syntax. With encoded words, strip leading whitespace and ignore
+   whitespace between adjacent words. Join same-charset words before conversion
+   so they can split a multibyte character.
+4. Convert supported charsets with replacement for malformed bytes.
 
-Ordinary values that need no transformation borrow from the input. Q words
-replace underscores with spaces and decode hexadecimal escapes; malformed
-escapes remain literal. B words follow Python's permissive Base64 filtering and
-missing-padding handling. An incomplete Base64 group returns
-`DecodeError::InvalidBase64`. An unknown or unsupported charset returns
-`DecodeError::UnsupportedCharset`. Incomplete markers and markers with an
-encoding other than Q or B remain literal.
+Unchanged ordinary UTF-8 values borrow the input. Q words replace underscores
+with spaces and decode hexadecimal escapes; malformed escapes remain literal.
+B words follow Python's permissive Base64 filtering and missing-padding handling.
+Invalid Base64 returns `DecodeError::InvalidBase64`. Unknown or unsupported
+charsets return `DecodeError::UnsupportedCharset`. Incomplete markers and
+encodings other than Q or B remain literal.
 
-The supported codecs are ASCII, Latin-1, Windows-1252, UTF-8, UTF-8 with a BOM,
-and UTF-16 with optional explicit byte order. Matching ignores ASCII case and
-treats underscores as hyphens. The accepted labels are:
+Supported codecs are ASCII, Latin-1, Windows-1252, UTF-8, `utf-8-sig`, and UTF-16
+with optional explicit byte order (`utf-16-le` or `utf-16-be`). Common Python
+aliases such as `us-ascii`, `iso-8859-1`, `cp1252`, and `utf8` are accepted;
+matching ignores ASCII case and treats underscores as hyphens. The decoder does
+not implement Python's complete codec or alias registry. UTF-7 is unsupported.
 
-| Codec | Labels |
-| --- | --- |
-| ASCII | `ascii`, `us-ascii`, `646`, `ansi-x3.4-1968`, `ansi-x3.4-1986`, `ansi-x3-4-1968`, `cp367`, `csascii`, `ibm367`, `iso646-us`, `iso-646.irv-1991`, `iso-ir-6`, `us` |
-| Latin-1 | `latin-1`, `latin1`, `iso-8859-1`, `iso8859-1`, `iso8859`, `l1`, `8859`, `cp819`, `csisolatin1`, `ibm819`, `iso-8859-1-1987`, `iso-ir-100`, `latin` |
-| Windows-1252 | `windows-1252`, `cp1252`, `1252` |
-| UTF-8 | `utf-8`, `utf8`, `cp65001`, `u8`, `utf`, `utf8-ucs2`, `utf8-ucs4` |
-| UTF-8 with BOM removal | `utf-8-sig` |
-| UTF-16 | `utf-16`, `utf16`, `u16` |
-| UTF-16 big endian | `utf-16-be`, `utf-16be`, `unicodebigunmarked` |
-| UTF-16 little endian | `utf-16-le`, `utf-16le`, `unicodelittleunmarked` |
+UTF-16 removes an initial BOM and otherwise uses native byte order. Explicit
+byte-order labels preserve a BOM as U+FEFF; UTF-8 removes one only for
+`utf-8-sig`. ASCII and Latin-1 retain their Python meanings. Windows-1252's five
+undefined bytes become U+FFFD.
 
-UTF-16 detects and removes an initial BOM; without one it uses native byte
-order, as Python does. Explicit UTF-16 byte-order labels preserve a BOM as
-U+FEFF. UTF-8 preserves a BOM unless the label is `utf-8-sig`. ASCII and Latin-1
-retain their Python meanings rather than aliasing Windows-1252. Windows-1252's
-five undefined bytes become U+FFFD. Other codecs, including UTF-7, are unsupported.
+This API is not `compat32` field lookup, which preserves encoded words. It also
+deliberately unfolds before decoding and preserves ordinary Unicode beside
+encoded words: `café =?utf-8?q?ok?=` becomes `café ok`, without Python's
+intermediate `raw-unicode-escape` conversion of ordinary text.
 
-This API is not Python's `compat32` field lookup, which preserves encoded
-words. It also deliberately unfolds before decoding and preserves ordinary
-Unicode beside encoded words instead of exposing Python's intermediate
-`raw-unicode-escape` byte conversion. For example, a folded plain value becomes
-one line, and `café =?utf-8?q?ok?=` becomes `café ok`.
+## Checking the decoder
 
-[Decoder fixtures](../crates/astral-email/tests/fixtures/decode.json) record
-Python's decoded results for all 256 byte values in each supported single-byte
-codec, plus malformed Unicode and BOM cases. The raw parser's separate
-[compatibility contract](conformance.md) does not depend on codec support.
+Run with CPython 3.12.13 on a little-endian host:
+
+```console
+python scripts/generate_decode_fixtures.py --check
+cargo test -p astral-email --lib decode::tests
+```
+
+Omit `--check` to regenerate the 47 [codec fixtures](../crates/astral-email/tests/fixtures/decode.json).
+They encode all 256 byte values for each supported single-byte codec and selected
+malformed UTF-8/UTF-16 and BOM sequences. Expected strings come from
+`email.header.decode_header`, then `bytes.decode(charset, errors="replace")`.
+
+For bounded Q/B comparisons, `generate_decode_fixtures.py --stdin` and the
+`decode_inspect` example accept JSON lines such as `{"value":"=?utf-8?B?YQ?="}`.
+Both prepend `X:`, parse that message, and decode its first `X` value. This keeps
+header trimming consistent. The Python wrapper unfolds the value first, calls
+`decode_header`, then converts the returned parts with replacement. Output is
+`{"value":"a"}` or an `error` code. Use ASCII inputs and the supported canonical
+charset names; this comparison does not cover ordinary Unicode text or all
+Python aliases. Folded inputs use LF or CRLF; bare-CR folding is outside this
+decoded-value comparison.
+
+The seeded driver compares 5,000 short values, including malformed Q/B payloads
+and adjacent words split across multibyte characters:
+
+```console
+cargo build -p astral-email --example decode_inspect --locked
+python scripts/check_decode.py target/debug/examples/decode_inspect
+```
