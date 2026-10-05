@@ -34,20 +34,13 @@ before running the workflows.
 
 1. Run **Prepare release** from `main`. Leave `version` empty for automatic
    detection, or provide an exact stable Cargo version without a leading `v`.
-   The first release defaults to the version already in `Cargo.toml`.
+   The first release uses the version in `Cargo.toml`. After that, Rooster bumps
+   the minor version for `breaking` changes and the patch version otherwise,
+   excluding internal changes.
 2. Review the generated version changes and changelog, then merge the release
    PR.
 3. Run **Release** from `main` with the prepared version. Select **Dry-run** to
    validate the package and release notes without publishing.
-4. When publishing, approve the protected `release-gate` deployment.
-
-Rooster chooses the next version from merged pull requests: `breaking` selects a
-minor bump, other changes select a patch bump, and internal changes are
-excluded. Preparation updates the workspace version and both Cargo lockfiles,
-rewrites the newest changelog section with Codex, and assigns the release PR to
-the person who started the workflow.
-
-Release validates the version, changelog, and package before publishing through
-Trusted Publishing in the `release` environment. It then creates the
-`v<version>` tag and GitHub release with the prepared notes. Retries skip the
-crate upload if that version already exists on crates.io.
+4. Approve the protected `release-gate` deployment to publish the crate and
+   create its GitHub release. Retries skip the crate upload if that version already
+   exists on crates.io.
