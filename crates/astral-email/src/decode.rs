@@ -51,23 +51,26 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
         });
     }
 
-    let mut output = String::new();
+    let mut output = String::with_capacity(unfolded.len());
     // Python validates every encoded payload before converting charsets.
     let mut charset_result = Ok(());
-    let mut pending: Option<(&str, Vec<u8>)> = None;
+    let mut pending_charset: Option<&str> = None;
+    let mut pending = Vec::new();
+    let mut filtered = Vec::new();
     let mut previous_plain = false;
     let mut parts = parts(&unfolded).peekable();
     while let Some(part) = parts.next() {
         let word = match part {
             Part::Encoded(word) => word,
             Part::Plain(value) => {
-                if pending.is_some()
+                if pending_charset.is_some()
                     && value.chars().all(is_whitespace)
                     && matches!(parts.peek(), Some(Part::Encoded(_)))
                 {
                     continue;
                 }
-                charset_result = charset_result.and(flush(&mut pending, &mut output));
+                charset_result =
+                    charset_result.and(flush(&mut pending_charset, &mut pending, &mut output));
                 if previous_plain {
                     output.push(' ');
                 }
@@ -78,23 +81,17 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
         };
         previous_plain = false;
 
-        let bytes = match word.encoding {
-            b'q' | b'Q' => decode_q(word.value),
-            _ => decode_b(word.value)?,
+        if pending_charset.is_some_and(|name| !name.eq_ignore_ascii_case(word.charset)) {
+            charset_result =
+                charset_result.and(flush(&mut pending_charset, &mut pending, &mut output));
+        }
+        pending_charset.get_or_insert(word.charset);
+        match word.encoding {
+            b'q' | b'Q' => decode_q(word.value, &mut pending),
+            _ => decode_b(word.value, &mut pending, &mut filtered)?,
         };
-        if pending
-            .as_ref()
-            .is_some_and(|(name, _)| !name.eq_ignore_ascii_case(word.charset))
-        {
-            charset_result = charset_result.and(flush(&mut pending, &mut output));
-        }
-        if let Some((_, previous)) = &mut pending {
-            previous.extend_from_slice(&bytes);
-        } else {
-            pending = Some((word.charset, bytes));
-        }
     }
-    charset_result.and(flush(&mut pending, &mut output))?;
+    charset_result.and(flush(&mut pending_charset, &mut pending, &mut output))?;
     Ok(Cow::Owned(output))
 }
 
@@ -229,7 +226,10 @@ fn is_whitespace(character: char) -> bool {
 }
 
 /// Convert non-ASCII encoded payload text as Python's `raw-unicode-escape` does.
-fn payload_bytes(value: &str) -> Vec<u8> {
+fn payload_bytes(value: &str) -> Cow<'_, [u8]> {
+    if value.is_ascii() {
+        return Cow::Borrowed(value.as_bytes());
+    }
     let mut bytes = Vec::with_capacity(value.len());
     for character in value.chars() {
         if u32::from(character) <= 255 {
@@ -240,14 +240,14 @@ fn payload_bytes(value: &str) -> Vec<u8> {
             bytes.extend_from_slice(format!("\\U{:08x}", u32::from(character)).as_bytes());
         }
     }
-    bytes
+    Cow::Owned(bytes)
 }
 
 /// Q words preserve malformed hex escapes; underscores represent spaces.
-fn decode_q(value: &str) -> Vec<u8> {
-    let mut bytes = payload_bytes(value);
+fn decode_q(value: &str, output: &mut Vec<u8>) {
+    let bytes = payload_bytes(value);
+    output.reserve(bytes.len());
     let mut read = 0;
-    let mut written = 0;
     while read < bytes.len() {
         let decoded = if bytes[read] == b'=' && read + 2 < bytes.len() {
             char::from(bytes[read + 1])
@@ -257,22 +257,19 @@ fn decode_q(value: &str) -> Vec<u8> {
         } else {
             None
         };
-        bytes[written] = if let Some(byte) = decoded {
+        output.push(if let Some(byte) = decoded {
             read += 3;
             byte
         } else {
             let byte = bytes[read];
             read += 1;
             if byte == b'_' { b' ' } else { byte }
-        };
-        written += 1;
+        });
     }
-    bytes.truncate(written);
-    bytes
 }
 
 /// Match Python's permissive Base64 filtering and its original-length padding.
-fn decode_b(value: &str) -> Result<Vec<u8>, DecodeError> {
+fn decode_b(value: &str, output: &mut Vec<u8>, filtered: &mut Vec<u8>) -> Result<(), DecodeError> {
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
     static ENGINE: std::sync::LazyLock<base64::engine::simd::Simd> =
         std::sync::LazyLock::new(|| {
@@ -287,11 +284,12 @@ fn decode_b(value: &str) -> Result<Vec<u8>, DecodeError> {
             GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
         );
     let padding = (4 - value.chars().count() % 4) % 4;
-    let mut filtered = Vec::new();
+    filtered.clear();
     let mut group = 0;
     let mut pads = 0;
     for byte in payload_bytes(value)
-        .into_iter()
+        .iter()
+        .copied()
         .chain(std::iter::repeat_n(b'=', padding))
     {
         if byte == b'=' {
@@ -313,16 +311,23 @@ fn decode_b(value: &str) -> Result<Vec<u8>, DecodeError> {
         return Err(DecodeError::InvalidBase64);
     }
     ENGINE
-        .decode(filtered)
+        .decode_vec(filtered, output)
         .map_err(|_| DecodeError::InvalidBase64)
 }
 
 /// Decode complete runs together so adjacent words can split a multibyte character.
-fn flush(pending: &mut Option<(&str, Vec<u8>)>, output: &mut String) -> Result<(), DecodeError> {
-    if let Some((name, bytes)) = pending.take() {
-        output.push_str(&decode_charset(name, &bytes)?);
+fn flush(
+    charset: &mut Option<&str>,
+    pending: &mut Vec<u8>,
+    output: &mut String,
+) -> Result<(), DecodeError> {
+    if let Some(name) = charset.take() {
+        let result = decode_charset(name, pending).map(|value| output.push_str(&value));
+        pending.clear();
+        result
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 /// Preserve Python's ASCII and Latin-1 meanings instead of WHATWG aliasing.
@@ -482,6 +487,8 @@ mod tests {
             ("=?windows-1252?Q?=80?=", "€"),
             ("=?utf-16?B?//5oAGkA?=", "hi"),
             ("=?utf-16-be?B?AGgAaQ==?=", "hi"),
+            ("=?iso-8859-1?q?é?=", "é"),
+            ("=?utf-8?q?€?=", "\\u20ac"),
         ] {
             assert_eq!(decode(value.as_bytes()).unwrap(), expected, "{value}");
         }
@@ -525,6 +532,10 @@ mod tests {
         assert_eq!(
             decode(b"=?unknown?q?a?= text =?another?q?b?="),
             Err(DecodeError::UnsupportedCharset("unknown".to_owned()))
+        );
+        assert_eq!(
+            decode(b"=?Unknown?q?a?= =?UNKNOWN?b?Yg==?="),
+            Err(DecodeError::UnsupportedCharset("Unknown".to_owned()))
         );
     }
 
