@@ -36,29 +36,37 @@ impl std::error::Error for DecodeError {}
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     let text = String::from_utf8_lossy(raw);
     let unfolded = unfold(&text);
-    let Some(mut word) = next_word(&unfolded) else {
+    if !has_encoded_word(&unfolded) {
         return Ok(match unfolded {
             Cow::Borrowed(_) => text,
             Cow::Owned(value) => Cow::Owned(value),
         });
-    };
+    }
 
     let mut output = String::new();
-    let mut cursor = 0;
     let mut pending: Option<(&str, Vec<u8>)> = None;
-    loop {
-        let prefix = &unfolded[cursor..cursor + word.start];
-        let prefix = if cursor == 0 {
-            prefix.trim_start_matches(is_whitespace)
-        } else {
-            prefix
+    let mut previous_plain = false;
+    let mut parts = parts(&unfolded).peekable();
+    while let Some(part) = parts.next() {
+        let word = match part {
+            Part::Encoded(word) => word,
+            Part::Plain(value) => {
+                if pending.is_some()
+                    && value.chars().all(is_whitespace)
+                    && matches!(parts.peek(), Some(Part::Encoded(_)))
+                {
+                    continue;
+                }
+                flush(&mut pending, &mut output)?;
+                if previous_plain {
+                    output.push(' ');
+                }
+                output.push_str(value);
+                previous_plain = true;
+                continue;
+            }
         };
-        if pending.is_some() && !prefix.chars().all(is_whitespace) {
-            flush(&mut pending, &mut output)?;
-        }
-        if pending.is_none() {
-            output.push_str(prefix);
-        }
+        previous_plain = false;
 
         let bytes = match word.encoding {
             b'q' | b'Q' => decode_q(word.value),
@@ -75,16 +83,72 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
         } else {
             pending = Some((word.charset, bytes));
         }
-
-        cursor += word.end;
-        let Some(next) = next_word(&unfolded[cursor..]) else {
-            break;
-        };
-        word = next;
     }
     flush(&mut pending, &mut output)?;
-    output.push_str(&unfolded[cursor..]);
     Ok(Cow::Owned(output))
+}
+
+/// Python checks for a marker before splitting lines; charsets can include LF.
+fn has_encoded_word(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    let Some(start) = value.find("=?") else {
+        return false;
+    };
+    let mut charset = true;
+    let mut payload_start = None;
+    for offset in memchr::memchr2_iter(b'?', b'\n', &bytes[start + 2..]) {
+        let index = start + 2 + offset;
+        if bytes[index] == b'\n' {
+            payload_start = None;
+            continue;
+        }
+        if payload_start.is_some_and(|start| index >= start) && bytes.get(index + 1) == Some(&b'=')
+        {
+            return true;
+        }
+        if charset
+            && matches!(bytes.get(index + 1), Some(b'q' | b'Q' | b'b' | b'B'))
+            && bytes.get(index + 2) == Some(&b'?')
+        {
+            payload_start.get_or_insert(index + 3);
+        }
+        charset = bytes[index - 1] == b'=';
+    }
+    false
+}
+
+enum Part<'a> {
+    Plain(&'a str),
+    Encoded(Word<'a>),
+}
+
+/// Split like Python's `str.splitlines`, then recognize words within each line.
+fn parts(value: &str) -> impl Iterator<Item = Part<'_>> {
+    value
+        .split([
+            '\n', '\r', '\u{b}', '\u{c}', '\u{1c}', '\u{1d}', '\u{1e}', '\u{85}', '\u{2028}',
+            '\u{2029}',
+        ])
+        .flat_map(|line| {
+            let mut remaining = line.trim_start_matches(is_whitespace);
+            std::iter::from_fn(move || {
+                if remaining.is_empty() {
+                    return None;
+                }
+                if let Some(word) = next_word(remaining) {
+                    if word.start == 0 {
+                        remaining = &remaining[word.end..];
+                        Some(Part::Encoded(word))
+                    } else {
+                        let plain = &remaining[..word.start];
+                        remaining = &remaining[word.start..];
+                        Some(Part::Plain(plain))
+                    }
+                } else {
+                    Some(Part::Plain(std::mem::take(&mut remaining)))
+                }
+            })
+        })
 }
 
 /// Replace a folded newline and its following indentation with one space.
@@ -125,34 +189,19 @@ struct Word<'a> {
     value: &'a str,
 }
 
-/// Find the next complete marker accepted by Python's `email.header` pattern.
+/// Find Python's next complete encoded word within a single line.
 fn next_word(value: &str) -> Option<Word<'_>> {
     let mut cursor = 0;
-    'search: while let Some(offset) = value[cursor..].find("=?") {
+    while let Some(offset) = value[cursor..].find("=?") {
         let start = cursor + offset;
         cursor = start + 2;
-        let charset_end = cursor + memchr::memchr2(b'?', b'\n', &value.as_bytes()[cursor..])?;
-        if value.as_bytes()[charset_end] == b'\n' {
-            cursor = charset_end + 1;
-            continue;
-        }
+        let charset_end = cursor + memchr::memchr(b'?', &value.as_bytes()[cursor..])?;
         let tail = &value.as_bytes()[charset_end + 1..];
         if !matches!(tail.first(), Some(b'q' | b'Q' | b'b' | b'B')) || tail.get(1) != Some(&b'?') {
             continue;
         }
         let encoded_start = charset_end + 3;
-        let mut encoded_end = encoded_start;
-        loop {
-            encoded_end += memchr::memchr2(b'?', b'\n', &value.as_bytes()[encoded_end..])?;
-            if value.as_bytes()[encoded_end] == b'\n' {
-                cursor = encoded_end + 1;
-                continue 'search;
-            }
-            if value.as_bytes().get(encoded_end + 1) == Some(&b'=') {
-                break;
-            }
-            encoded_end += 1;
-        }
+        let encoded_end = encoded_start + value[encoded_start..].find("?=")?;
         return Some(Word {
             start,
             end: encoded_end + 2,
@@ -441,5 +490,49 @@ mod tests {
         assert_eq!(decode("café =?utf-8?q?ok?=".as_bytes()).unwrap(), "café ok");
         assert_eq!(decode(b"=?utf-8?q?a?=\r\n\t=?utf-8?q?b?=").unwrap(), "ab");
         assert_eq!(decode(b"=?utf-8?q?a?=\r\n\tb").unwrap(), "a b");
+    }
+
+    #[test]
+    fn python_line_separators() {
+        for separator in [
+            '\u{b}', '\u{c}', '\u{1c}', '\u{1d}', '\u{1e}', '\u{85}', '\u{2028}', '\u{2029}',
+        ] {
+            let plain = format!("before{separator} after");
+            assert!(
+                matches!(decode(plain.as_bytes()).unwrap(), Cow::Borrowed(value) if value == plain)
+            );
+            for (value, expected) in [
+                (format!("=?utf-8?q?hello?={separator}"), "hello"),
+                (format!("=?utf-8?q?hello?={separator}  world"), "helloworld"),
+                (format!("prefix{separator}=?utf-8?q?hello?="), "prefixhello"),
+                (
+                    format!("before{separator} after =?utf-8?q?end?="),
+                    "before after end",
+                ),
+                (format!("=?utf-8?q?=C3?={separator}=?utf-8?q?=A9?="), "é"),
+                (
+                    format!("=?utf-8?q?hello{separator}world?="),
+                    "=?utf-8?q?hello world?=",
+                ),
+                (
+                    format!("=?utf{separator}-8?q?hello?="),
+                    "=?utf -8?q?hello?=",
+                ),
+            ] {
+                assert_eq!(decode(value.as_bytes()).unwrap(), expected, "{value:?}");
+            }
+        }
+        assert_eq!(
+            decode(b"=?utf-\n8?q?hello?=").unwrap(),
+            "=?utf- 8?q?hello?="
+        );
+        assert_eq!(
+            decode(b"=?utf-8?q?hello\nworld?=").unwrap(),
+            "=?utf-8?q?hello\nworld?="
+        );
+        assert_eq!(
+            decode(b"=?utf-8?q?outer =?\nutf-8?q?inner?=").unwrap(),
+            "=?utf-8?q?outer =? utf-8?q?inner?="
+        );
     }
 }

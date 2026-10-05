@@ -6,8 +6,11 @@
 1. Decode ordinary bytes as UTF-8, replacing invalid sequences with U+FFFD.
 2. Unfold CRLF or LF followed by spaces or tabs into one space.
 3. Decode RFC 2047 Q and B words using Python's `email.header.decode_header`
-   marker syntax. With encoded words, strip leading whitespace and ignore
-   whitespace between adjacent words. Join words with the same charset label
+   marker syntax. If a marker is present, split lines as Python does (including
+   vertical tab, form feed, and Unicode line separators), strip leading
+   whitespace on each line, and recognize words within those lines. Consecutive
+   ordinary pieces are joined with one space; whitespace between adjacent
+   encoded words is ignored. Join words with the same charset label
    (ignoring ASCII case) before conversion so they can split a multibyte character.
    Different aliases are decoded separately, as in Python.
 4. Convert supported charsets with replacement for malformed bytes.
@@ -59,8 +62,8 @@ charset names; this comparison does not cover ordinary Unicode text or all
 Python aliases. Folded inputs use LF or CRLF; bare-CR folding is outside this
 decoded-value comparison.
 
-The seeded driver compares 5,000 short values, including malformed Q/B payloads
-and adjacent words split across multibyte characters:
+The driver compares separator cases and 5,000 seeded short values, including
+malformed Q/B payloads and adjacent words split across multibyte characters:
 
 ```console
 cargo build -p astral-email --example decode_inspect --locked
