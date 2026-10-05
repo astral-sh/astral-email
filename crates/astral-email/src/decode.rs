@@ -34,7 +34,7 @@ impl std::error::Error for DecodeError {}
 /// Unicode text beside encoded words remains Unicode. Invalid raw UTF-8 and
 /// malformed bytes in a supported charset become U+FFFD.
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
-    let text = String::from_utf8_lossy(raw);
+    let text = decode_utf8(raw);
     if !memchr::memchr2_iter(b'\n', b'=', text.as_bytes()).any(|offset| {
         matches!(
             &text.as_bytes()[offset..],
@@ -96,6 +96,14 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     }
     charset_result.and(flush(&mut pending, &mut output))?;
     Ok(Cow::Owned(output))
+}
+
+/// Borrow valid UTF-8 and replace malformed sequences using the standard library.
+fn decode_utf8(bytes: &[u8]) -> Cow<'_, str> {
+    match simdutf8::compat::from_utf8(bytes) {
+        Ok(text) => Cow::Borrowed(text),
+        Err(_) => String::from_utf8_lossy(bytes),
+    }
 }
 
 /// Python checks for a marker before splitting lines; charsets can include LF.
@@ -340,10 +348,8 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
             }
         }
         "iso8859-1" => encoding_rs::mem::decode_latin1(bytes),
-        "utf-8" => String::from_utf8_lossy(bytes),
-        "utf-8-sig" => {
-            String::from_utf8_lossy(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes))
-        }
+        "utf-8" => decode_utf8(bytes),
+        "utf-8-sig" => decode_utf8(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes)),
         "utf-16" => {
             let (encoding, bytes) = if let Some(bytes) = bytes.strip_prefix(b"\xfe\xff") {
                 (encoding_rs::UTF_16BE, bytes)
@@ -411,6 +417,50 @@ mod tests {
             );
         }
         assert_eq!(decode(b"bad \xff").unwrap(), "bad \u{fffd}");
+    }
+
+    #[test]
+    fn utf8_replacement_matches_std() {
+        for first in 0..=u8::MAX {
+            for second in 0..=u8::MAX {
+                let bytes = [first, second];
+                assert_eq!(
+                    super::decode_charset("utf-8", &bytes).unwrap(),
+                    String::from_utf8_lossy(&bytes),
+                );
+            }
+        }
+        for invalid in [
+            b"\xed\xa0\x80".as_slice(),
+            b"\xf0\x80\x80A",
+            b"\xf4\x90\x80\x80",
+            b"\xc2",
+            b"\xe2\x82",
+            b"\xf0\x9f\x92",
+        ] {
+            for offset in [0, 15, 16, 31, 32, 63, 64, 127, 128] {
+                for suffix in [b"".as_slice(), &[b'z'; 128]] {
+                    let mut bytes = vec![b'a'; offset];
+                    bytes.extend_from_slice(invalid);
+                    bytes.extend_from_slice(suffix);
+                    let expected = String::from_utf8_lossy(&bytes);
+                    assert_eq!(super::decode_charset("utf-8", &bytes).unwrap(), expected);
+                    assert_eq!(decode(&bytes).unwrap(), expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn utf8_bom_handling() {
+        let value = "\u{feff}\u{feff}text";
+        assert!(matches!(decode(value.as_bytes()).unwrap(), Cow::Borrowed(text) if text == value));
+        for (charset, expected) in [("utf-8", value), ("utf-8-sig", "\u{feff}text")] {
+            assert!(matches!(
+                super::decode_charset(charset, value.as_bytes()).unwrap(),
+                Cow::Borrowed(text) if text == expected
+            ));
+        }
     }
 
     #[test]

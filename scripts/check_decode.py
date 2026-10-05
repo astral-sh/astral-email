@@ -37,6 +37,15 @@ def values():
         yield f"=?utf-8?q?=C3?={separator}=?utf-8?q?=A9?="
         yield f"=?utf-8?q?hello{separator}world?="
         yield f"=?utf{separator}-8?q?hello?="
+    for charset in ["utf-8", "utf-8-sig"]:
+        for encoding in ["Q", "B"]:
+            for data in [b"\xef\xbb\xbftext", b"\xef\xbb\xbf\xef\xbb\xbftext", b"\xef\xbb"]:
+                yield word(charset, data, encoding)
+            for offset in [15, 16, 31, 32, 63, 64, 127, 128]:
+                for invalid in [b"\xed\xa0\x80", b"\xf0\x80\x80A", b"\xf4\x90\x80\x80", b"\xf0\x9f\x92"]:
+                    data = b"a" * offset + invalid
+                    yield word(charset, data, encoding)
+                    yield word(charset, data + b"z" * 128, encoding)
     randomizer = random.Random(0)
     charsets = [
         "utf-8", "utf-8-sig", "ascii", "iso-8859-1", "windows-1252",
