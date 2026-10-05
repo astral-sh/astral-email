@@ -7,6 +7,10 @@ use std::borrow::Cow;
 
 use memchr::memchr2;
 
+mod decode;
+
+pub use decode::DecodeError;
+
 /// A recoverable header error reported by Python's `compat32` parser.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Defect {
@@ -39,6 +43,18 @@ impl<'a> Header<'a> {
     /// removed. Interior folding, encoded words and non-ASCII bytes are retained.
     pub fn raw_value(&self) -> &'a [u8] {
         self.value
+    }
+
+    /// Unfold and decode RFC 2047 words for display or metadata extraction.
+    ///
+    /// This is an explicit conversion; Python's `compat32` raw values retain
+    /// folding and encoded words. Ordinary UTF-8 values remain borrowed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid Base64 or an unsupported declared charset.
+    pub fn decoded_value(&self) -> Result<Cow<'a, str>, DecodeError> {
+        decode::decode(self.value)
     }
 }
 
