@@ -16,6 +16,7 @@ use std::borrow::Cow;
 
 use memchr::memchr2;
 
+mod charset;
 mod decode;
 
 pub use decode::DecodeError;

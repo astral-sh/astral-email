@@ -36,6 +36,21 @@ def generate() -> dict:
             b"\xed\xa0\x80", b"\xf0\x80\x80A",
         ]:
             inputs.append((charset, raw))
+    inputs.extend([
+        (" UTF 8 ", b"\xc3\xa9"),
+        ("---ASCII---", b"A\xff"),
+        ("latin; 1", b"\xe9"),
+        ("windows.1252", b"\x80"),
+        ("ANSI.X3.4.1968", b"A\xff"),
+        ("iso.8859.1", b"\xe9"),
+        ("utf__8__sig", b"\xef\xbb\xbfA"),
+        ("utf--16", b"\xff\xfeA\x00"),
+        ("UTF 16 LE", b"A\x00"),
+        ("utf.16be", b"\x00A"),
+        ("utfÉ8", b"\xc3\xa9"),
+        ("utf-☃-8", b"\xc3\xa9"),
+        ("utf１６", b"\xc3\xa9"),
+    ])
     cases = []
     for charset, raw in inputs:
         value = f"=?{charset}?B?{base64.b64encode(raw).decode('ascii')}?="
@@ -60,7 +75,7 @@ def inspect_value(value: str) -> dict:
         if charset is not None:
             try:
                 supported = codecs.lookup(charset).name in CODECS
-            except LookupError:
+            except (LookupError, ValueError):
                 supported = False
             if not supported:
                 return {"error": "unsupported_charset"}
@@ -81,14 +96,15 @@ def main() -> None:
         return
     if sys.byteorder != "little":
         parser.error("fixture generation requires little-endian native UTF-16")
-    output = json.dumps(generate(), indent=2) + "\n"
+    corpus = generate()
+    output = json.dumps(corpus, indent=2) + "\n"
     if args.check:
         if not FIXTURES.exists() or FIXTURES.read_text() != output:
             parser.exit(1, "Fixtures differ; run scripts/generate_decode_fixtures.py to regenerate.\n")
-        print(f"Checked 47 CPython {PYTHON_VERSION} decoder cases")
+        print(f"Checked {len(corpus['cases'])} CPython {PYTHON_VERSION} decoder cases")
     else:
         FIXTURES.write_text(output)
-        print(f"Wrote 47 decoder cases to {FIXTURES}")
+        print(f"Wrote {len(corpus['cases'])} decoder cases to {FIXTURES}")
 
 
 if __name__ == "__main__":

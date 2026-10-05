@@ -308,10 +308,10 @@ fn flush(pending: &mut Option<(&str, Vec<u8>)>, output: &mut String) -> Result<(
 
 /// Preserve Python's ASCII and Latin-1 meanings instead of WHATWG aliasing.
 fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, DecodeError> {
-    let normalized = name.to_ascii_lowercase().replace('_', "-");
-    let decoded = match normalized.as_str() {
-        "ascii" | "us-ascii" | "646" | "ansi-x3.4-1968" | "ansi-x3.4-1986" | "ansi-x3-4-1968"
-        | "cp367" | "csascii" | "ibm367" | "iso646-us" | "iso-646.irv-1991" | "iso-ir-6" | "us" => {
+    let normalized = crate::charset::lookup(name)
+        .ok_or_else(|| DecodeError::UnsupportedCharset(name.to_owned()))?;
+    let decoded = match normalized {
+        "ascii" => {
             if bytes.is_ascii() {
                 Cow::Borrowed(str::from_utf8(bytes).expect("ASCII is valid UTF-8"))
             } else {
@@ -329,17 +329,12 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
                 )
             }
         }
-        "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "iso8859" | "l1" | "8859" | "cp819"
-        | "csisolatin1" | "ibm819" | "iso-8859-1-1987" | "iso-ir-100" | "latin" => {
-            encoding_rs::mem::decode_latin1(bytes)
-        }
-        "utf-8" | "utf8" | "cp65001" | "u8" | "utf" | "utf8-ucs2" | "utf8-ucs4" => {
-            String::from_utf8_lossy(bytes)
-        }
+        "iso8859-1" => encoding_rs::mem::decode_latin1(bytes),
+        "utf-8" => String::from_utf8_lossy(bytes),
         "utf-8-sig" => {
             String::from_utf8_lossy(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes))
         }
-        "utf-16" | "utf16" | "u16" => {
+        "utf-16" => {
             let (encoding, bytes) = if let Some(bytes) = bytes.strip_prefix(b"\xfe\xff") {
                 (encoding_rs::UTF_16BE, bytes)
             } else if let Some(bytes) = bytes.strip_prefix(b"\xff\xfe") {
@@ -356,20 +351,15 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
             };
             encoding.decode_without_bom_handling(bytes).0
         }
-        "utf-16-be"
-        | "utf-16-le"
-        | "utf-16be"
-        | "utf-16le"
-        | "unicodebigunmarked"
-        | "unicodelittleunmarked" => {
-            let encoding = if normalized.ends_with("be") || normalized == "unicodebigunmarked" {
+        "utf-16-be" | "utf-16-le" => {
+            let encoding = if normalized == "utf-16-be" {
                 encoding_rs::UTF_16BE
             } else {
                 encoding_rs::UTF_16LE
             };
             encoding.decode_without_bom_handling(bytes).0
         }
-        "windows-1252" | "cp1252" | "1252" => {
+        "cp1252" => {
             let decoded = encoding_rs::WINDOWS_1252
                 .decode_without_bom_handling(bytes)
                 .0;
@@ -474,7 +464,7 @@ mod tests {
         let fixtures: serde_json::Value =
             serde_json::from_str(include_str!("../tests/fixtures/decode.json")).unwrap();
         let cases = fixtures["cases"].as_array().unwrap();
-        assert_eq!(cases.len(), 47);
+        assert_eq!(cases.len(), 60);
         for case in cases {
             let value = case["value"].as_str().unwrap();
             assert_eq!(

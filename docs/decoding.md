@@ -25,8 +25,9 @@ encodings other than Q or B remain literal.
 Supported codecs are ASCII, Latin-1, Windows-1252, UTF-8, `utf-8-sig`, and UTF-16
 with optional explicit byte order (`utf-16-le` or `utf-16-be`). Common Python
 aliases such as `us-ascii`, `iso-8859-1`, `cp1252`, and `utf8` are accepted;
-matching ignores ASCII case and treats underscores as hyphens. The decoder does
-not implement Python's complete codec or alias registry. UTF-7 is unsupported.
+lookup follows Python's case and separator normalization. For example, `utf 8`,
+`utf--8`, and `windows.1252` resolve to supported codecs, while `utf.8` does not.
+The full Python codec registry and UTF-7 are unsupported.
 
 UTF-16 removes an initial BOM and otherwise uses native byte order. Explicit
 byte-order labels preserve a BOM as U+FEFF; UTF-8 removes one only for
@@ -47,10 +48,10 @@ python scripts/generate_decode_fixtures.py --check
 cargo test -p astral-email --lib decode::tests
 ```
 
-Omit `--check` to regenerate the 47 [codec fixtures](../crates/astral-email/tests/fixtures/decode.json).
+Omit `--check` to regenerate the 60 [codec fixtures](../crates/astral-email/tests/fixtures/decode.json).
 They encode all 256 byte values for each supported single-byte codec and selected
-malformed UTF-8/UTF-16 and BOM sequences. Expected strings come from
-`email.header.decode_header`, then `bytes.decode(charset, errors="replace")`.
+malformed UTF-8/UTF-16, BOM sequences, and charset-label variants. Expected strings
+come from `email.header.decode_header`, then `bytes.decode(charset, errors="replace")`.
 
 For bounded Q/B comparisons, `generate_decode_fixtures.py --stdin` and the
 `decode_inspect` example accept JSON lines such as `{"value":"=?utf-8?B?YQ?="}`.

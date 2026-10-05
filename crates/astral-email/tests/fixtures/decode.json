@@ -188,6 +188,58 @@
     {
       "value": "=?utf-16?B?8ICAQQ==?=",
       "expected": "\u80f0\u4180"
+    },
+    {
+      "value": "=? UTF 8 ?B?w6k=?=",
+      "expected": "\u00e9"
+    },
+    {
+      "value": "=?---ASCII---?B?Qf8=?=",
+      "expected": "A\ufffd"
+    },
+    {
+      "value": "=?latin; 1?B?6Q==?=",
+      "expected": "\u00e9"
+    },
+    {
+      "value": "=?windows.1252?B?gA==?=",
+      "expected": "\u20ac"
+    },
+    {
+      "value": "=?ANSI.X3.4.1968?B?Qf8=?=",
+      "expected": "A\ufffd"
+    },
+    {
+      "value": "=?iso.8859.1?B?6Q==?=",
+      "expected": "\u00e9"
+    },
+    {
+      "value": "=?utf__8__sig?B?77u/QQ==?=",
+      "expected": "A"
+    },
+    {
+      "value": "=?utf--16?B?//5BAA==?=",
+      "expected": "A"
+    },
+    {
+      "value": "=?UTF 16 LE?B?QQA=?=",
+      "expected": "A"
+    },
+    {
+      "value": "=?utf.16be?B?AEE=?=",
+      "expected": "A"
+    },
+    {
+      "value": "=?utf\u00c98?B?w6k=?=",
+      "expected": "\u00e9"
+    },
+    {
+      "value": "=?utf-\u2603-8?B?w6k=?=",
+      "expected": "\u00e9"
+    },
+    {
+      "value": "=?utf\uff11\uff16?B?w6k=?=",
+      "expected": "\u00e9"
     }
   ]
 }
