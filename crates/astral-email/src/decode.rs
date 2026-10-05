@@ -166,7 +166,7 @@ fn unfold(value: &str) -> Cow<'_, str> {
             continue;
         }
         let end = newline - usize::from(newline > 0 && bytes[newline - 1] == b'\r');
-        let output = output.get_or_insert_with(String::new);
+        let output = output.get_or_insert_with(|| String::with_capacity(value.len()));
         output.push_str(&value[copied..end]);
         output.push(' ');
         while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
