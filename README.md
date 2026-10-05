@@ -1,31 +1,40 @@
 # astral-email
 
-A read-only parser for Python packaging headers, written in Rust.
+[![Crates.io](https://img.shields.io/crates/v/astral-email.svg)](https://crates.io/crates/astral-email)
 
-The parser targets the header and body-boundary behavior of Python's `email.parser.BytesHeaderParser` with the `compat32` policy. It is intended for uv's `METADATA`, `PKG-INFO`, and `WHEEL` readers.
+A high-performance email header parser designed for Python packaging.
 
-The application chooses the allocator. MIME body parsing, writing, and mutation are outside the library's scope.
+> [!WARNING]
+>
+> This project is developed with AI assistance, including its code and documentation.
+
+## Example usage
+
+Use `Message` to parse `METADATA`, `PKG-INFO`, and `WHEEL` headers. Headers borrow
+the input and preserve duplicates, spelling, folding, and encoded words. Decode
+values explicitly when extracting metadata:
 
 ```rust
 use astral_email::Message;
 
-let message = Message::parse(b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n");
+let source = b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n";
+let message = Message::parse(source);
+
 assert_eq!(message.first("name").unwrap().raw_value(), b"example");
 
 for header in message.all("Requires-Dist") {
-    println!("{}", header.decoded_value().unwrap());
+    println!("{}", header.decoded_value()?);
 }
 ```
 
-Headers borrow the input and preserve duplicates, spelling, folding, and encoded
-words. Malformed headers recover as Python does, with defects available to the
-caller. Text decoding is explicit and fallible; the supported codecs and
-differences from Python's text conversion are documented separately.
+Header parsing and malformed-input recovery follow Python's
+`email.parser.BytesHeaderParser` with the `compat32` policy. The body remains
+opaque; MIME parsing, writing, and mutation are outside the library's scope.
 
-- [Conformance](docs/conformance.md) and [value decoding](docs/decoding.md)
-- [uv integration](docs/uv.md)
-- [Benchmarks](docs/performance.md)
-- [Fuzzing](docs/fuzzing.md)
+See [conformance](https://github.com/astral-sh/astral-email/blob/main/docs/conformance.md),
+[value decoding](https://github.com/astral-sh/astral-email/blob/main/docs/decoding.md),
+and [uv integration](https://github.com/astral-sh/astral-email/blob/main/docs/uv.md)
+for details.
 
 ## Development
 
@@ -34,8 +43,20 @@ cargo test --workspace --all-targets --all-features --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 ```
 
-CI tests Linux AMD64 and ARM64 on GitHub-hosted runners.
+See the [fuzzing guide](https://github.com/astral-sh/astral-email/blob/main/docs/fuzzing.md)
+for additional validation.
 
 ## License
 
-Licensed under either [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option.
+astral-email is licensed under either of
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+  <https://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or
+  <https://opensource.org/licenses/MIT>)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in astral-email by you, as defined in the Apache-2.0 license, shall
+be dually licensed as above, without any additional terms or conditions.

@@ -1,4 +1,4 @@
-//! Read-only parsing of Python packaging headers.
+//! A high-performance email header parser designed for Python packaging.
 //!
 //! Header structure and recovery follow Python's `BytesHeaderParser` with the
 //! `compat32` policy. Values retain folding and encoded words; the body is opaque.
