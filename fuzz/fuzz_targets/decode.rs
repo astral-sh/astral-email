@@ -23,7 +23,9 @@ fuzz_target!(|bytes: &[u8]| {
     let header = message.first("X").unwrap();
     let first = header.decoded_value();
     assert_eq!(first, header.decoded_value());
-    if let Ok(Cow::Borrowed(value)) = first {
+    if let Ok(Cow::Borrowed(value)) = first
+        && !value.is_empty()
+    {
         let raw = header.raw_value();
         let start = (value.as_ptr() as usize)
             .checked_sub(raw.as_ptr() as usize)
