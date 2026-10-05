@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the adapter to a pinned uv checkout and run its library tests."""
+"""Apply the adapter to pinned uv and run upstream and adapter tests."""
 
 import argparse
 import hashlib
@@ -51,6 +51,10 @@ def main():
         subprocess.run(["git", "apply", "--check", patch], cwd=checkout, check=True)
         subprocess.run(["git", "apply", patch], cwd=checkout, check=True)
     check_test_modules(checkout)
+    for crate in ("uv-pypi-types", "uv-install-wheel"):
+        destination = checkout / "crates" / crate / "tests" / "astral_email.rs"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((ROOT / "scripts/uv-tests" / f"{crate}.rs").read_bytes())
     if args.apply_only:
         return
 
@@ -58,7 +62,10 @@ def main():
     if args.toolchain:
         cargo.append(f"+{args.toolchain}")
     subprocess.run(
-        cargo + ["test", "-p", "uv-pypi-types", "-p", "uv-install-wheel", "--lib"],
+        cargo + [
+            "test", "-p", "uv-pypi-types", "-p", "uv-install-wheel",
+            "--lib", "--test", "astral_email",
+        ],
         cwd=checkout,
         check=True,
     )

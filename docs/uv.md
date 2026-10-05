@@ -26,10 +26,16 @@ test functions directly exercise email parsing: two resolution metadata tests,
 three full metadata tests, four email-file tests, one wheel-version test, and
 one empty-value test. The full suites include unrelated tests too.
 
-Local Linux validation on 2026-10-05 passed all 51 `uv-pypi-types` tests and all
-22 `uv-install-wheel` tests, including those eleven parser tests. This validates
+The script also copies the [adapter tests](../scripts/uv-tests/) into separate
+integration targets in the pinned checkout. Nine metadata tests and three WHEEL
+tests cover decoding errors in consumed fields, ignored fields, duplicate and
+`UNKNOWN` selection, malformed-header recovery, and description fallback. The
+WHEEL tests also check error context, case-sensitive names, and value trimming.
+
+Local Linux validation on 2026-10-05 passed all 73 upstream library tests
+(51 `uv-pypi-types`, 22 `uv-install-wheel`) and all 12 adapter tests. This validates
 the two modified crates; it does not cover uv's complete resolver, publishing,
-or network integration suites. The Linux workflow repeats the same pinned test.
+or network integration suites. The Linux workflow runs the same pinned suites.
 
 ## Compatibility
 
