@@ -252,7 +252,10 @@ fn decode_q(value: &str, output: &mut Vec<u8>) {
     let bytes = payload_bytes(value);
     output.reserve(bytes.len());
     let mut read = 0;
-    while read < bytes.len() {
+    while let Some(offset) = memchr::memchr2(b'=', b'_', &bytes[read..]) {
+        let end = read + offset;
+        output.extend_from_slice(&bytes[read..end]);
+        read = end;
         let decoded = if bytes[read] == b'=' && read + 2 < bytes.len() {
             char::from(bytes[read + 1])
                 .to_digit(16)
@@ -270,6 +273,7 @@ fn decode_q(value: &str, output: &mut Vec<u8>) {
             if byte == b'_' { b' ' } else { byte }
         });
     }
+    output.extend_from_slice(&bytes[read..]);
 }
 
 /// Match Python's permissive Base64 filtering and its original-length padding.
