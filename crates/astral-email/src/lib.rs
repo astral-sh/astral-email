@@ -256,8 +256,26 @@ fn parse<'a>(
 
     while position < source.len() {
         let start = position;
-        let content_end =
-            memchr2(b'\r', b'\n', &source[start..]).map_or(source.len(), |offset| start + offset);
+        let remaining = &source[start..];
+        let empty = matches!(remaining[0], b'\r' | b'\n');
+        let continuation = matches!(remaining[0], b' ' | b'\t');
+        let is_envelope = remaining.starts_with(b"From ");
+        let colon = if empty || continuation || is_envelope {
+            None
+        } else {
+            remaining
+                .iter()
+                .position(|byte| !(b'!'..=b'~').contains(byte) || *byte == b':')
+                .filter(|index| remaining[*index] == b':')
+        };
+        if !empty && !continuation && !is_envelope && colon.is_none() {
+            // Python gathers lines before processing individual headers.
+            defects.insert(0, Defect::MissingHeaderBodySeparator);
+            break;
+        }
+        let value_start = colon.map_or(start, |colon| start + colon + 1);
+        let content_end = memchr2(b'\r', b'\n', &source[value_start..])
+            .map_or(source.len(), |offset| value_start + offset);
         let mut end = content_end;
         if end < source.len() {
             end += 1;
@@ -266,22 +284,8 @@ fn parse<'a>(
             }
         }
         let line = &source[start..content_end];
-        if line.is_empty() {
+        if empty {
             position = end;
-            break;
-        }
-        let continuation = matches!(line[0], b' ' | b'\t');
-        let is_envelope = line.starts_with(b"From ");
-        let colon = if continuation || is_envelope {
-            None
-        } else {
-            line.iter()
-                .position(|byte| !(b'!'..=b'~').contains(byte) || *byte == b':')
-                .filter(|index| line[*index] == b':')
-        };
-        if !continuation && !is_envelope && colon.is_none() {
-            // Python gathers lines before processing individual headers.
-            defects.insert(0, Defect::MissingHeaderBodySeparator);
             break;
         }
         position = end;

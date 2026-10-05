@@ -60,3 +60,20 @@ fn accepts_empty_input_and_eof_without_newline() {
     assert_eq!(message.first("name").unwrap().raw_value(), b"x");
     assert!(message.body().is_empty());
 }
+
+#[test]
+fn field_names_stop_at_line_endings() {
+    for ending in [b"\r".as_slice(), b"\n", b"\r\n"] {
+        let mut source = b"Previous: accepted".to_vec();
+        source.extend_from_slice(ending);
+        let body_start = source.len();
+        source.extend_from_slice(b"Missing-colon");
+        source.extend_from_slice(ending);
+        source.extend_from_slice(b"Next: still body");
+        let message = Message::parse(&source);
+        assert_eq!(message.headers().len(), 1);
+        assert_eq!(message.first("Previous").unwrap().raw_value(), b"accepted");
+        assert_eq!(message.body(), &source[body_start..]);
+        assert_eq!(message.defects(), [Defect::MissingHeaderBodySeparator]);
+    }
+}
