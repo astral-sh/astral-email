@@ -8,13 +8,26 @@ repository.workspace = true
 description = "A read-only parser for Python packaging headers"
 readme = "README.md"
 
+[features]
+benchmark-jemalloc = ["dep:tikv-jemallocator"]
+
 [dependencies]
 base64.workspace = true
 encoding_rs.workspace = true
 memchr.workspace = true
 
 [dev-dependencies]
+mailparse.workspace = true
+rustc-hash.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+
+[target.'cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
+tikv-jemallocator = { version = "0.6.0", default-features = false, features = ["background_threads_runtime_support"], optional = true }
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "parse"
+harness = false

@@ -1,0 +1,9 @@
+Metadata-Version: 2.3
+Name: basic-app
+Version: 0.1.0
+Summary: Add your description here
+Author: Charlie Marsh
+Author-email: Charlie Marsh <charlie.r.marsh@gmail.com>
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+
