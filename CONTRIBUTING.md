@@ -16,9 +16,9 @@ this repository's `release.yml` workflow and `release` environment. Crates.io
 authentication uses OIDC; this repository does not need a `CARGO_REGISTRY_TOKEN`
 secret.
 
-Give the existing `astral-automations-bot` and `astral-releases-bot` GitHub Apps
-access to this repository. Create an `automations` environment restricted to
-`main` and configure these secrets:
+Give the existing `release-environment-gate`, `astral-automations-bot`, and
+`astral-releases-bot` GitHub Apps access to this repository. Create an
+`automations` environment restricted to `main` and configure these secrets:
 
 | Environment   | Secret                 | Value                                                     |
 | ------------- | ---------------------- | --------------------------------------------------------- |
