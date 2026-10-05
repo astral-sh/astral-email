@@ -7,3 +7,5 @@
 /fuzz/logs/
 /fuzz/final-corpus/
 *.profraw
+/uv-source/
+__pycache__/

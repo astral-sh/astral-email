@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: simple-launcher
+Version: 0.1.0
+Summary: 
+Author: konstin
+Author-email: konstin@mailbox.org
+Requires-Python: >=3.12,<4.0
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
