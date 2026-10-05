@@ -15,6 +15,7 @@ dependencies = [
  "base64",
  "encoding_rs",
  "memchr",
+ "simdutf8",
 ]
 
 [[package]]

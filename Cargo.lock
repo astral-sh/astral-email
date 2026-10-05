@@ -13,6 +13,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "simdutf8",
  "stats_alloc",
  "tikv-jemallocator",
 ]

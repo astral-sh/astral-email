@@ -152,7 +152,7 @@ fn main() {
         let astral_median = percentile(&astral_samples, 50);
         let baseline_median = percentile(&baseline_samples, 50);
         println!(
-            "{},{},{:.0},{:.0},{:.3},{:.0},{:.0},{:.0},{:.0}",
+            "{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3}",
             case.name,
             case.input.len(),
             astral_median,

@@ -15,6 +15,7 @@ benchmark-jemalloc = ["dep:tikv-jemallocator"]
 base64.workspace = true
 encoding_rs.workspace = true
 memchr.workspace = true
+simdutf8.workspace = true
 
 [dev-dependencies]
 mailparse.workspace = true
