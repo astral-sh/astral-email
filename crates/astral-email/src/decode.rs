@@ -44,6 +44,8 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     }
 
     let mut output = String::new();
+    // Python validates every encoded payload before converting charsets.
+    let mut charset_result = Ok(());
     let mut pending: Option<(&str, Vec<u8>)> = None;
     let mut previous_plain = false;
     let mut parts = parts(&unfolded).peekable();
@@ -57,7 +59,7 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
                 {
                     continue;
                 }
-                flush(&mut pending, &mut output)?;
+                charset_result = charset_result.and(flush(&mut pending, &mut output));
                 if previous_plain {
                     output.push(' ');
                 }
@@ -76,7 +78,7 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
             .as_ref()
             .is_some_and(|(name, _)| !name.eq_ignore_ascii_case(word.charset))
         {
-            flush(&mut pending, &mut output)?;
+            charset_result = charset_result.and(flush(&mut pending, &mut output));
         }
         if let Some((_, previous)) = &mut pending {
             previous.extend_from_slice(&bytes);
@@ -84,7 +86,7 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
             pending = Some((word.charset, bytes));
         }
     }
-    flush(&mut pending, &mut output)?;
+    charset_result.and(flush(&mut pending, &mut output))?;
     Ok(Cow::Owned(output))
 }
 
@@ -457,6 +459,26 @@ mod tests {
                 Err(DecodeError::UnsupportedCharset(charset.to_owned()))
             );
         }
+    }
+
+    #[test]
+    fn base64_errors_precede_charset_errors() {
+        for value in [
+            "=?unknown?q?a?= text =?utf-8?b?Y?=",
+            "=?unknown?q?a?= =?utf-8?q?b?= =?utf-8?b?Y?=",
+            "=?unknown?b?YQ?= text =?another?q?b?= =?utf-8?b?Y?=",
+            "=?utf-8?b?Y?= text =?unknown?q?a?=",
+        ] {
+            assert_eq!(
+                decode(value.as_bytes()),
+                Err(DecodeError::InvalidBase64),
+                "{value}"
+            );
+        }
+        assert_eq!(
+            decode(b"=?unknown?q?a?= text =?another?q?b?="),
+            Err(DecodeError::UnsupportedCharset("unknown".to_owned()))
+        );
     }
 
     #[test]

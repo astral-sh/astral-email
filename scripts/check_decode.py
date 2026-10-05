@@ -20,6 +20,14 @@ def word(charset: str, data: bytes, encoding: str) -> str:
 
 
 def values():
+    for separator in ["", " ", " text ", "\v"]:
+        unknown = "=?unknown?q?a?="
+        valid = "=?utf-8?q?b?="
+        invalid = "=?utf-8?b?Y?="
+        yield separator.join([unknown, invalid])
+        yield separator.join([unknown, valid, invalid])
+        yield separator.join([invalid, unknown])
+        yield separator.join([unknown, valid])
     for separator in ["\v", "\f", "\x1c", "\x1d", "\x1e"]:
         yield f"before{separator} after"
         yield f"=?utf-8?q?hello?={separator}"

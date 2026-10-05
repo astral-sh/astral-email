@@ -21,6 +21,8 @@ B words follow Python's permissive Base64 filtering and missing-padding handling
 Invalid Base64 returns `DecodeError::InvalidBase64`. Unknown or unsupported
 charsets return `DecodeError::UnsupportedCharset`. Incomplete markers and
 encodings other than Q or B remain literal.
+As in Python, Base64 errors take precedence over charset errors. Otherwise, the
+first unsupported charset is reported.
 
 Supported codecs are ASCII, Latin-1, Windows-1252, UTF-8, `utf-8-sig`, and UTF-16
 with optional explicit byte order (`utf-16-le` or `utf-16-be`). Common Python
@@ -58,10 +60,9 @@ For bounded Q/B comparisons, `generate_decode_fixtures.py --stdin` and the
 Both prepend `X:`, parse that message, and decode its first `X` value. This keeps
 header trimming consistent. The Python wrapper unfolds the value first, calls
 `decode_header`, then converts the returned parts with replacement. Output is
-`{"value":"a"}` or an `error` code. Use ASCII inputs and the supported canonical
-charset names; this comparison does not cover ordinary Unicode text or all
-Python aliases. Folded inputs use LF or CRLF; bare-CR folding is outside this
-decoded-value comparison.
+`{"value":"a"}` or an `error` code. The comparison covers ASCII input and labels
+resolving to the supported codec families. Ordinary Unicode text follows the
+separate convenience policy described above.
 
 The driver compares separator cases and 5,000 seeded short values, including
 malformed Q/B payloads and adjacent words split across multibyte characters:
