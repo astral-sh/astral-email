@@ -7,8 +7,9 @@
 2. Unfold CRLF or LF followed by spaces or tabs into one space.
 3. Decode RFC 2047 Q and B words using Python's `email.header.decode_header`
    marker syntax. With encoded words, strip leading whitespace and ignore
-   whitespace between adjacent words. Join same-charset words before conversion
-   so they can split a multibyte character.
+   whitespace between adjacent words. Join words with the same charset label
+   (ignoring ASCII case) before conversion so they can split a multibyte character.
+   Different aliases are decoded separately, as in Python.
 4. Convert supported charsets with replacement for malformed bytes.
 
 Unchanged ordinary UTF-8 values borrow the input. Q words replace underscores
