@@ -11,6 +11,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/viarius-experiments/astral-email"
 
 [workspace.dependencies]
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+encoding_rs = { version = "0.8.35", default-features = false, features = ["alloc"] }
 memchr = { version = "2.7.4", default-features = false, features = ["std"] }
 serde_json = { version = "1.0", default-features = false, features = ["std"] }
 

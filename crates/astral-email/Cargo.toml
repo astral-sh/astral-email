@@ -9,6 +9,8 @@ description = "A read-only parser for Python packaging headers"
 readme = "README.md"
 
 [dependencies]
+base64.workspace = true
+encoding_rs.workspace = true
 memchr.workspace = true
 
 [dev-dependencies]
