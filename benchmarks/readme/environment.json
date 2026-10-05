@@ -1,0 +1,35 @@
+{
+  "measured_revision": "03a2973ea2fa42d0c160009c60c3b16a008b2d44",
+  "source_sha256": {
+    "Cargo.toml": "e592d9c15c86236cc9646a7f40964c47ebae862da7fa45109e6c79ee86c5affb",
+    "Cargo.lock": "1a85033be65fcb5725aa0eec2ba2d3eb5aea0bf163a64365979ae7684571c2bb",
+    "crates/astral-email/Cargo.toml": "00403902ab4bac42d1196aad62c0f6180c6c4874e69e0e4738b4ccb6d67158ca",
+    "crates/astral-email/benches/parse.rs": "7b0958f9befb8b56c90fa7504c5bfc9427c43f065314ac9596172ea9c124b0bd",
+    "crates/astral-email/tests/support/mod.rs": "9e3d3e2e2402a6bd188f2241cbb0cef9144b21ad0daabde0fdf07f4929af6eec",
+    "crates/astral-email/src/lib.rs": "5887de3d9a6dc4473285e8eef4920608d84d3161aa6fee8ca8fd51aa2eca4817",
+    "crates/astral-email/src/charset.rs": "bbd9be35c5052e863dea66b97ba1dca57ff678204518a27f20e930dbdd1af89c",
+    "crates/astral-email/src/decode.rs": "1f62811a3f733c85d7d5368a2240a6021ad31ebe127a4c16414a5f45664b2d19"
+  },
+  "date": "2026-10-05T18:03:00.973772-04:00",
+  "cpu": "AMD EPYC-Milan Processor",
+  "pinned_cpu": 26,
+  "kernel": "Linux-6.8.0-106-generic-x86_64-with-glibc2.39",
+  "rustc": "rustc 1.98.1-dev (f62703110 2026-09-08) (ohm-1.98.1-1)\nbinary: rustc\ncommit-hash: f6270311094cd4b48fefce03debdffcf8396c64c\ncommit-date: 2026-09-08\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1-dev\nLLVM version: 22.1.8",
+  "profile": {
+    "optimization": 3,
+    "lto": "thin",
+    "codegen_units": 1,
+    "target_cpu": "default",
+    "experimental_build_defaults": false
+  },
+  "baseline": "mailparse 0.16.1",
+  "allocator": "system",
+  "sessions": 3,
+  "samples": 31,
+  "sample_ms": 5,
+  "warmup_ms": 15,
+  "package_filters": ["maturin-1.4.0", "tqdm-4.66.1", "black-24.8.0"],
+  "fixture_source_revision": "46b84fd0bfec23b72f29e8e2185ba68a65052f48",
+  "aggregation": "Median of three per-session medians; nanoseconds divided by 1000 and rounded to two decimal places.",
+  "scope": "Parse, equivalent owned field extraction and output destruction. Fixture loading and output equality checks excluded."
+}
