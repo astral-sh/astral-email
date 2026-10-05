@@ -1,6 +1,6 @@
 # Fuzzing
 
-Four targets accept arbitrary bytes:
+Five targets cover parsing and decoding:
 
 | Target | Checks |
 | --- | --- |
@@ -8,14 +8,22 @@ Four targets accept arbitrary bytes:
 | `decode` | Repeated decoding produces the same value or error; borrowed output stays within the raw value |
 | `lookup` | First and all lookups match ordered, ASCII-case-insensitive filtering |
 | `python` | Headers, raw values, body, envelope, and defect order match CPython 3.12.13 `compat32` |
+| `python_decode` | Decoded ASCII input matches Python's text or rejection for the supported codec families |
 
 The Python target keeps one oracle process per fuzzer process. It uses the same
 byte-preserving JSON protocol as the [conformance suite](conformance.md), with
 no malformed-input exclusions. Set `ASTRAL_EMAIL_PYTHON` to select the pinned
 interpreter. The decoder target checks every header parsed directly from the
 input, then wraps the input as one value with continuation indentation after
-line endings, preserving CRLF pairs. It checks invariants;
-it is not an independent oracle for decoded values.
+line endings, preserving CRLF pairs.
+
+The `python_decode` target uses the [decoder comparison pipeline](decoding.md#checking-the-decoder)
+with a separate persistent Python process. It explores malformed markers,
+charset labels, and arbitrary word sequences. It compares successful text and
+acceptance or rejection; inputs containing multiple errors have no error-precedence
+contract. Non-ASCII input is excluded from this comparison because ordinary
+Unicode text follows a separate convenience policy. The `decode` invariant target
+continues to cover arbitrary bytes.
 
 `fuzz/seed_corpus.py` imports the raw parser and decoder fixtures, captured uv
 files, and their header values. Large uv bodies are excluded from the size-limited

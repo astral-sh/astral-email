@@ -1,0 +1,45 @@
+use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+
+use serde_json::Value;
+
+pub(crate) struct Oracle {
+    _child: Child,
+    input: ChildStdin,
+    output: BufReader<ChildStdout>,
+}
+
+impl Oracle {
+    pub(crate) fn start(mode: &str) -> Self {
+        let python = std::env::var_os("ASTRAL_EMAIL_PYTHON").unwrap_or_else(|| "python3".into());
+        let mut child = Command::new(python)
+            .arg("-u")
+            .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("python_oracle.py"))
+            .arg(mode)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("start CPython 3.12.13 oracle");
+        let input = child.stdin.take().unwrap();
+        let output = BufReader::new(child.stdout.take().unwrap());
+        Self {
+            _child: child,
+            input,
+            output,
+        }
+    }
+
+    pub(crate) fn inspect(&mut self, request: &Value) -> Value {
+        serde_json::to_writer(&mut self.input, request).unwrap();
+        writeln!(self.input).unwrap();
+        self.input.flush().unwrap();
+        let mut response = String::new();
+        assert_ne!(
+            self.output.read_line(&mut response).unwrap(),
+            0,
+            "Python oracle exited"
+        );
+        serde_json::from_str(&response).expect("Python oracle returned JSON")
+    }
+}
