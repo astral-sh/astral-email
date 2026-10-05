@@ -1,0 +1,18 @@
+[package]
+name = "astral-email"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A read-only parser for Python packaging headers"
+readme = "README.md"
+
+[dependencies]
+memchr.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
