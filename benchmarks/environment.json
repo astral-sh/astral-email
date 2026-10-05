@@ -43,6 +43,7 @@
   "allocation_measurement": {
     "allocator": "stats_alloc 0.1.10 wrapping System",
     "scope": "Same owned-output extraction as timing; includes drop; fixture loading excluded",
-    "body_check": "Raw parse allocation statistics equal for identical headers with empty and 16 MiB opaque bodies"
+    "body_check": "Raw parse allocation statistics equal for identical headers with empty and 16 MiB opaque bodies",
+    "source_revision": "0a8bf378ac6a04b46a7f96d240366d5dafa0e53c"
   }
 }
