@@ -55,6 +55,7 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     // Python validates every encoded payload before converting charsets.
     let mut charset_result = Ok(());
     let mut pending: Option<(&str, Vec<u8>)> = None;
+    let mut filtered = Vec::new();
     let mut previous_plain = false;
     let mut parts = parts(&unfolded).peekable();
     while let Some(part) = parts.next() {
@@ -80,7 +81,7 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
 
         let bytes = match word.encoding {
             b'q' | b'Q' => decode_q(word.value),
-            _ => decode_b(word.value)?,
+            _ => decode_b(word.value, &mut filtered)?,
         };
         if pending
             .as_ref()
@@ -237,7 +238,10 @@ fn is_whitespace(character: char) -> bool {
 }
 
 /// Convert non-ASCII encoded payload text as Python's `raw-unicode-escape` does.
-fn payload_bytes(value: &str) -> Vec<u8> {
+fn payload_bytes(value: &str) -> Cow<'_, [u8]> {
+    if value.is_ascii() {
+        return Cow::Borrowed(value.as_bytes());
+    }
     let mut bytes = Vec::with_capacity(value.len());
     for character in value.chars() {
         if u32::from(character) <= 255 {
@@ -248,12 +252,12 @@ fn payload_bytes(value: &str) -> Vec<u8> {
             bytes.extend_from_slice(format!("\\U{:08x}", u32::from(character)).as_bytes());
         }
     }
-    bytes
+    Cow::Owned(bytes)
 }
 
 /// Q words preserve malformed hex escapes; underscores represent spaces.
 fn decode_q(value: &str) -> Vec<u8> {
-    let mut bytes = payload_bytes(value);
+    let mut bytes = payload_bytes(value).into_owned();
     let mut read = 0;
     let mut written = 0;
     while read < bytes.len() {
@@ -280,17 +284,18 @@ fn decode_q(value: &str) -> Vec<u8> {
 }
 
 /// Match Python's permissive Base64 filtering and its original-length padding.
-fn decode_b(value: &str) -> Result<Vec<u8>, DecodeError> {
+fn decode_b(value: &str, filtered: &mut Vec<u8>) -> Result<Vec<u8>, DecodeError> {
     const ENGINE: GeneralPurpose = GeneralPurpose::new(
         &base64::alphabet::STANDARD,
         GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
     );
     let padding = (4 - value.chars().count() % 4) % 4;
-    let mut filtered = Vec::new();
+    filtered.clear();
     let mut group = 0;
     let mut pads = 0;
     for byte in payload_bytes(value)
-        .into_iter()
+        .iter()
+        .copied()
         .chain(std::iter::repeat_n(b'=', padding))
     {
         if byte == b'=' {
@@ -493,6 +498,26 @@ mod tests {
             ("=?windows-1252?Q?=80?=", "€"),
             ("=?utf-16?B?//5oAGkA?=", "hi"),
             ("=?utf-16-be?B?AGgAaQ==?=", "hi"),
+            ("=?iso-8859-1?q?é?=", "é"),
+            ("=?utf-8?q?€😀?=", "\\u20ac\\U0001f600"),
+        ] {
+            assert_eq!(decode(value.as_bytes()).unwrap(), expected, "{value}");
+        }
+    }
+
+    #[test]
+    fn mixed_encodings_and_charset_runs() {
+        for (value, expected) in [
+            ("=?utf-8?q?=C3?= =?UTF-8?b?qQ==?=", "é"),
+            ("=?utf-8?b?ww==?= =?utf-8?q?=A9?=", "é"),
+            ("=?utf-8?b?ww==?= =?utf-8?b?qQ==?= =?utf-8?q?!?=", "é!"),
+            ("=?utf-16?b?//5B?= =?UTF-16?q?=00?=", "A"),
+            ("=?utf-8?q?=C3?= =?utf_8?b?qQ==?=", "\u{fffd}\u{fffd}"),
+            ("=?utf-8?b?YQ==?= =?latin-1?q?=E9?= =?utf-8?b?w6k=?=", "aéé"),
+            (
+                "=?utf-8?q?one?= =?utf-8?b??= =?utf-8?q?two?= text =?utf-8?b?dGhyZWU=?=",
+                "onetwo text three",
+            ),
         ] {
             assert_eq!(decode(value.as_bytes()).unwrap(), expected, "{value}");
         }
@@ -536,6 +561,10 @@ mod tests {
         assert_eq!(
             decode(b"=?unknown?q?a?= text =?another?q?b?="),
             Err(DecodeError::UnsupportedCharset("unknown".to_owned()))
+        );
+        assert_eq!(
+            decode(b"=?Unknown?q?a?= =?UNKNOWN?b?Yg==?="),
+            Err(DecodeError::UnsupportedCharset("Unknown".to_owned()))
         );
     }
 
