@@ -21,6 +21,7 @@ struct Options {
     warmup: Duration,
     filter: Option<String>,
     test: bool,
+    reuse: bool,
 }
 
 impl Options {
@@ -31,11 +32,13 @@ impl Options {
             warmup: Duration::from_millis(10),
             filter: None,
             test: cfg!(debug_assertions),
+            reuse: false,
         };
         let mut args = std::env::args().skip(1);
         while let Some(arg) = args.next() {
             match arg.as_str() {
                 "--test" => options.test = true,
+                "--reuse" => options.reuse = true,
                 "--bench" => {}
                 "--samples" => options.samples = args.next().unwrap().parse().unwrap(),
                 "--sample-ms" => {
@@ -53,7 +56,7 @@ impl Options {
     }
 }
 
-fn batch(run: &impl Fn() -> support::Output, iterations: u64) -> Duration {
+fn batch(run: &mut impl FnMut() -> support::Output, iterations: u64) -> Duration {
     let start = Instant::now();
     for _ in 0..iterations {
         black_box(run());
@@ -61,7 +64,7 @@ fn batch(run: &impl Fn() -> support::Output, iterations: u64) -> Duration {
     start.elapsed()
 }
 
-fn iterations(run: &impl Fn() -> support::Output, target: Duration) -> u64 {
+fn iterations(run: &mut impl FnMut() -> support::Output, target: Duration) -> u64 {
     let mut count = 1;
     loop {
         let elapsed = batch(run, count);
@@ -90,10 +93,17 @@ fn main() {
         })
         .collect();
     assert!(!cases.is_empty(), "no cases matched the filter");
+    let mut parser = astral_email::Parser::default();
     for case in &cases {
         assert_eq!(
             support::astral_email(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
+            "{}",
+            case.name,
+        );
+        assert_eq!(
+            support::astral_email(&case.input, case.kind),
+            support::astral_email_reused(&mut parser, &case.input, case.kind),
             "{}",
             case.name,
         );
@@ -119,30 +129,53 @@ fn main() {
         options.sample.as_millis(),
         options.warmup.as_millis(),
     );
+    let astral_name = if options.reuse {
+        "astral_reused"
+    } else {
+        "astral_email"
+    };
+    let baseline_name = if options.reuse {
+        "astral_fresh"
+    } else {
+        "mailparse"
+    };
     println!(
-        "case,bytes,astral_email_ns,mailparse_ns,speedup,astral_email_p10_ns,astral_email_p90_ns,mailparse_p10_ns,mailparse_p90_ns"
+        "case,bytes,{astral_name}_ns,{baseline_name}_ns,speedup,{astral_name}_p10_ns,{astral_name}_p90_ns,{baseline_name}_p10_ns,{baseline_name}_p90_ns"
     );
+    let mut parser = astral_email::Parser::default();
     for case in cases {
-        let astral = || support::astral_email(black_box(&case.input), case.kind);
-        let baseline = || support::mailparse(black_box(&case.input), case.kind);
+        let mut astral = || {
+            if options.reuse {
+                support::astral_email_reused(&mut parser, black_box(&case.input), case.kind)
+            } else {
+                support::astral_email(black_box(&case.input), case.kind)
+            }
+        };
+        let mut baseline = || {
+            if options.reuse {
+                support::astral_email(black_box(&case.input), case.kind)
+            } else {
+                support::mailparse(black_box(&case.input), case.kind)
+            }
+        };
         let start = Instant::now();
         while start.elapsed() < options.warmup {
             black_box(astral());
             black_box(baseline());
         }
-        let astral_iterations = iterations(&astral, options.sample);
-        let baseline_iterations = iterations(&baseline, options.sample);
+        let astral_iterations = iterations(&mut astral, options.sample);
+        let baseline_iterations = iterations(&mut baseline, options.sample);
         let mut astral_samples = Vec::with_capacity(options.samples);
         let mut baseline_samples = Vec::with_capacity(options.samples);
         for sample in 0..options.samples {
             let (astral_time, baseline_time) = if sample % 2 == 0 {
                 (
-                    batch(&astral, astral_iterations),
-                    batch(&baseline, baseline_iterations),
+                    batch(&mut astral, astral_iterations),
+                    batch(&mut baseline, baseline_iterations),
                 )
             } else {
-                let baseline_time = batch(&baseline, baseline_iterations);
-                (batch(&astral, astral_iterations), baseline_time)
+                let baseline_time = batch(&mut baseline, baseline_iterations);
+                (batch(&mut astral, astral_iterations), baseline_time)
             };
             astral_samples.push(astral_time.as_nanos() as f64 / astral_iterations as f64);
             baseline_samples.push(baseline_time.as_nanos() as f64 / baseline_iterations as f64);

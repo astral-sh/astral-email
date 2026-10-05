@@ -13,6 +13,7 @@
 //! ```
 
 use std::borrow::Cow;
+use std::ops::Range;
 
 use memchr::memchr2;
 
@@ -89,90 +90,11 @@ impl<'a> Message<'a> {
     pub fn parse(source: &'a [u8]) -> Self {
         let mut headers = Vec::new();
         let mut defects = Vec::new();
-        let mut unix_from = None;
-        let mut pending: Option<(&str, usize, usize)> = None;
-        let mut envelope: Option<(usize, usize)> = None;
-        let mut position = 0;
-        let mut line_number = 0;
-
-        while position < source.len() {
-            let start = position;
-            let content_end = memchr2(b'\r', b'\n', &source[start..])
-                .map_or(source.len(), |offset| start + offset);
-            let mut end = content_end;
-            if end < source.len() {
-                end += 1;
-                if source[content_end] == b'\r' && source.get(end) == Some(&b'\n') {
-                    end += 1;
-                }
-            }
-            let line = &source[start..content_end];
-            if line.is_empty() {
-                position = end;
-                break;
-            }
-            let continuation = matches!(line[0], b' ' | b'\t');
-            let is_envelope = line.starts_with(b"From ");
-            let colon = if continuation || is_envelope {
-                None
-            } else {
-                line.iter()
-                    .position(|byte| !(b'!'..=b'~').contains(byte) || *byte == b':')
-                    .filter(|index| line[*index] == b':')
-            };
-            if !continuation && !is_envelope && colon.is_none() {
-                // Python gathers lines before processing individual headers.
-                defects.insert(0, Defect::MissingHeaderBodySeparator);
-                break;
-            }
-            position = end;
-            if envelope.take().is_some() {
-                defects.push(Defect::MisplacedEnvelopeHeader);
-            }
-
-            if continuation {
-                if let Some((_, _, value_end)) = &mut pending {
-                    *value_end = end;
-                } else {
-                    defects.push(Defect::FirstHeaderLineIsContinuation);
-                }
-            } else {
-                if let Some((name, value_start, value_end)) = pending.take() {
-                    headers.push(header(name, &source[value_start..value_end]));
-                }
-                if is_envelope {
-                    if line_number == 0 {
-                        unix_from = Some(line);
-                    } else {
-                        envelope = Some((start, end));
-                    }
-                } else if let Some(colon) = colon {
-                    if colon == 0 {
-                        defects.push(Defect::InvalidHeader);
-                    } else {
-                        let name = std::str::from_utf8(&line[..colon])
-                            .expect("header names contain only printable ASCII");
-                        pending = Some((name, start + colon + 1, end));
-                    }
-                }
-            }
-            line_number += 1;
-        }
-        if let Some((name, value_start, value_end)) = pending {
-            headers.push(header(name, &source[value_start..value_end]));
-        }
-        let body = if let Some((start, end)) = envelope {
-            if end == position {
-                Cow::Borrowed(&source[start..])
-            } else {
-                let mut body = Vec::with_capacity(end - start + source.len() - position);
-                body.extend_from_slice(&source[start..end]);
-                body.extend_from_slice(&source[position..]);
-                Cow::Owned(body)
-            }
-        } else {
-            Cow::Borrowed(&source[position..])
-        };
+        let (body, unix_from) = parse(
+            source,
+            |offsets| headers.push(offsets.get(source)),
+            &mut defects,
+        );
         Self {
             headers,
             body,
@@ -216,13 +138,208 @@ impl<'a> Message<'a> {
     }
 }
 
+/// Header storage retained between calls to [`Parser::parse`].
+///
+/// Capacity follows the largest message parsed and is released when the parser
+/// is dropped. A parsed view borrows the storage until its last use.
+#[derive(Debug, Default)]
+pub struct Parser {
+    headers: Vec<HeaderOffsets>,
+    defects: Vec<Defect>,
+}
+
+impl Parser {
+    /// Parse a message while reusing the header and defect allocations.
+    ///
+    /// ```
+    /// use astral_email::Parser;
+    /// let mut parser = Parser::default();
+    /// assert_eq!(parser.parse(b"Name: first").first("Name").unwrap().raw_value(), b"first");
+    /// assert_eq!(parser.parse(b"Name: next").first("Name").unwrap().raw_value(), b"next");
+    /// ```
+    pub fn parse<'p, 's>(&'p mut self, source: &'s [u8]) -> MessageView<'p, 's> {
+        self.headers.clear();
+        self.defects.clear();
+        let (body, unix_from) = parse(
+            source,
+            |header| self.headers.push(header),
+            &mut self.defects,
+        );
+        MessageView {
+            source,
+            headers: &self.headers,
+            body,
+            unix_from,
+            defects: &self.defects,
+        }
+    }
+}
+
+/// Immutable message data backed by a reusable [`Parser`].
+#[derive(Debug)]
+pub struct MessageView<'p, 's> {
+    source: &'s [u8],
+    headers: &'p [HeaderOffsets],
+    body: Cow<'s, [u8]>,
+    unix_from: Option<&'s [u8]>,
+    defects: &'p [Defect],
+}
+
+impl<'s> MessageView<'_, 's> {
+    /// Headers in source order, including repeated names.
+    pub fn headers(&self) -> impl ExactSizeIterator<Item = Header<'s>> + '_ {
+        self.headers.iter().map(|header| header.get(self.source))
+    }
+
+    /// Find the first header with this name, ignoring ASCII case.
+    pub fn first(&self, name: &str) -> Option<Header<'s>> {
+        self.headers
+            .iter()
+            .find(|header| self.source[header.name.clone()].eq_ignore_ascii_case(name.as_bytes()))
+            .map(|header| header.get(self.source))
+    }
+
+    /// Iterate over matching headers in source order, ignoring ASCII case.
+    pub fn all<'m>(&'m self, name: &'m str) -> impl Iterator<Item = Header<'s>> + 'm {
+        self.headers
+            .iter()
+            .filter(move |header| {
+                self.source[header.name.clone()].eq_ignore_ascii_case(name.as_bytes())
+            })
+            .map(|header| header.get(self.source))
+    }
+
+    /// Body bytes, without MIME parsing, decoding or newline normalization.
+    pub fn body(&self) -> &[u8] {
+        &self.body
+    }
+
+    /// The initial `From ` envelope line, without its line ending.
+    pub fn unix_from(&self) -> Option<&'s [u8]> {
+        self.unix_from
+    }
+
+    /// Recoverable errors in the order reported by Python.
+    pub fn defects(&self) -> &[Defect] {
+        self.defects
+    }
+}
+
+#[derive(Debug)]
+struct HeaderOffsets {
+    name: Range<usize>,
+    value: Range<usize>,
+}
+
+impl HeaderOffsets {
+    /// Borrow the validated field name and trimmed value from the source.
+    fn get<'a>(&self, source: &'a [u8]) -> Header<'a> {
+        Header {
+            name: str::from_utf8(&source[self.name.clone()])
+                .expect("header names contain only printable ASCII"),
+            value: &source[self.value.clone()],
+        }
+    }
+}
+
+/// Parse shared structure into borrowed headers or reusable offset records.
+fn parse<'a>(
+    source: &'a [u8],
+    mut push_header: impl FnMut(HeaderOffsets),
+    defects: &mut Vec<Defect>,
+) -> (Cow<'a, [u8]>, Option<&'a [u8]>) {
+    let mut unix_from = None;
+    let mut pending: Option<(Range<usize>, usize, usize)> = None;
+    let mut envelope: Option<(usize, usize)> = None;
+    let mut position = 0;
+    let mut line_number = 0;
+
+    while position < source.len() {
+        let start = position;
+        let content_end =
+            memchr2(b'\r', b'\n', &source[start..]).map_or(source.len(), |offset| start + offset);
+        let mut end = content_end;
+        if end < source.len() {
+            end += 1;
+            if source[content_end] == b'\r' && source.get(end) == Some(&b'\n') {
+                end += 1;
+            }
+        }
+        let line = &source[start..content_end];
+        if line.is_empty() {
+            position = end;
+            break;
+        }
+        let continuation = matches!(line[0], b' ' | b'\t');
+        let is_envelope = line.starts_with(b"From ");
+        let colon = if continuation || is_envelope {
+            None
+        } else {
+            line.iter()
+                .position(|byte| !(b'!'..=b'~').contains(byte) || *byte == b':')
+                .filter(|index| line[*index] == b':')
+        };
+        if !continuation && !is_envelope && colon.is_none() {
+            // Python gathers lines before processing individual headers.
+            defects.insert(0, Defect::MissingHeaderBodySeparator);
+            break;
+        }
+        position = end;
+        if envelope.take().is_some() {
+            defects.push(Defect::MisplacedEnvelopeHeader);
+        }
+
+        if continuation {
+            if let Some((_, _, value_end)) = &mut pending {
+                *value_end = end;
+            } else {
+                defects.push(Defect::FirstHeaderLineIsContinuation);
+            }
+        } else {
+            if let Some((name, value_start, value_end)) = pending.take() {
+                push_header(header(source, name, value_start..value_end));
+            }
+            if is_envelope {
+                if line_number == 0 {
+                    unix_from = Some(line);
+                } else {
+                    envelope = Some((start, end));
+                }
+            } else if let Some(colon) = colon {
+                if colon == 0 {
+                    defects.push(Defect::InvalidHeader);
+                } else {
+                    pending = Some((start..start + colon, start + colon + 1, end));
+                }
+            }
+        }
+        line_number += 1;
+    }
+    if let Some((name, value_start, value_end)) = pending {
+        push_header(header(source, name, value_start..value_end));
+    }
+    let body = if let Some((start, end)) = envelope {
+        if end == position {
+            Cow::Borrowed(&source[start..])
+        } else {
+            let mut body = Vec::with_capacity(end - start + source.len() - position);
+            body.extend_from_slice(&source[start..end]);
+            body.extend_from_slice(&source[position..]);
+            Cow::Owned(body)
+        }
+    } else {
+        Cow::Borrowed(&source[position..])
+    };
+    (body, unix_from)
+}
+
 /// Apply `compat32.header_source_parse` trimming to a contiguous field value.
-fn header<'a>(name: &'a str, mut value: &'a [u8]) -> Header<'a> {
-    while matches!(value.first(), Some(b' ' | b'\t' | b'\r' | b'\n')) {
-        value = &value[1..];
+fn header(source: &[u8], name: Range<usize>, mut value: Range<usize>) -> HeaderOffsets {
+    while value.start < value.end && matches!(source[value.start], b' ' | b'\t' | b'\r' | b'\n') {
+        value.start += 1;
     }
-    while matches!(value.last(), Some(b'\r' | b'\n')) {
-        value = &value[..value.len() - 1];
+    while value.start < value.end && matches!(source[value.end - 1], b'\r' | b'\n') {
+        value.end -= 1;
     }
-    Header { name, value }
+    HeaderOffsets { name, value }
 }

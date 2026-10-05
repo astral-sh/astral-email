@@ -20,6 +20,14 @@ fn measure<T>(run: impl FnOnce() -> T) -> Stats {
 }
 
 fn main() {
+    let mut args = std::env::args().skip(1);
+    let reuse = match args.next().as_deref() {
+        None => false,
+        Some("--reuse") => true,
+        Some(arg) => panic!("unknown argument: {arg}"),
+    };
+    assert!(args.next().is_none());
+    let mut parser = astral_email::Parser::default();
     println!("case,parser,allocations,reallocations,bytes_allocated,bytes_reallocated");
     for case in support::cases() {
         assert_eq!(
@@ -28,9 +36,34 @@ fn main() {
             "{}",
             case.name,
         );
-        let astral = measure(|| support::astral_email(&case.input, case.kind));
-        let baseline = measure(|| support::mailparse(&case.input, case.kind));
-        for (name, stats) in [("astral-email", astral), ("mailparse", baseline)] {
+        let results = if reuse {
+            assert_eq!(
+                support::astral_email(&case.input, case.kind),
+                support::astral_email_reused(&mut parser, &case.input, case.kind),
+            );
+            [
+                (
+                    "astral-reused",
+                    measure(|| support::astral_email_reused(&mut parser, &case.input, case.kind)),
+                ),
+                (
+                    "astral-fresh",
+                    measure(|| support::astral_email(&case.input, case.kind)),
+                ),
+            ]
+        } else {
+            [
+                (
+                    "astral-email",
+                    measure(|| support::astral_email(&case.input, case.kind)),
+                ),
+                (
+                    "mailparse",
+                    measure(|| support::mailparse(&case.input, case.kind)),
+                ),
+            ]
+        };
+        for (name, stats) in results {
             println!(
                 "{},{},{},{},{},{}",
                 case.name,

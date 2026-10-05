@@ -1,6 +1,6 @@
 #![no_main]
 
-use astral_email::Message;
+use astral_email::{Message, Parser};
 use libfuzzer_sys::fuzz_target;
 
 fn offset(source: &[u8], field: &[u8]) -> usize {
@@ -43,4 +43,30 @@ fuzz_target!(|source: &[u8]| {
     assert_eq!(message.body(), repeated.body());
     assert_eq!(message.unix_from(), repeated.unix_from());
     assert_eq!(message.defects(), repeated.defects());
+    let mut parser = Parser::default();
+    for input in [source, &source[source.len() / 2..], b"", source] {
+        let fresh = Message::parse(input);
+        let reused = parser.parse(input);
+        assert!(fresh.headers().iter().copied().eq(reused.headers()));
+        assert_eq!(fresh.body(), reused.body());
+        assert_eq!(fresh.unix_from(), reused.unix_from());
+        assert_eq!(fresh.defects(), reused.defects());
+        for header in fresh
+            .headers()
+            .first()
+            .into_iter()
+            .chain(fresh.headers().last())
+        {
+            assert_eq!(
+                fresh.first(header.name()).copied(),
+                reused.first(header.name())
+            );
+            assert!(
+                fresh
+                    .all(header.name())
+                    .copied()
+                    .eq(reused.all(header.name()))
+            );
+        }
+    }
 });

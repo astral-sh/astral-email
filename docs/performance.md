@@ -80,3 +80,17 @@ python3 scripts/benchmark_uv.py --build-only --binary /tmp/uv-email-candidate
 Capture `--snapshot` from the parent adapter first. `--check` compares all semantic
 outputs before timing, including error variants. Keep the owned-extraction
 benchmark above unchanged when evaluating borrowing in the uv adapter.
+## Parser reuse
+
+Pass `--reuse` to compare a reused `Parser` with fresh `Message::parse` calls:
+
+```console
+cargo bench --locked --bench parse -- --reuse
+cargo run --release --locked --example allocations -- --reuse
+```
+
+Both paths extract and drop the same owned output. The reused parser retains
+header and defect storage across inputs; warmup and output comparisons happen
+before measurement. Its final destruction is outside timing, so these results
+measure reuse after capacity has been established, excluding the initial growth
+and final release. Capacity remains allocated until the parser is dropped.

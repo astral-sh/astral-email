@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use astral_email::Message;
+use astral_email::{Message, Parser};
 use mailparse::MailHeaderMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -299,6 +299,26 @@ pub(crate) fn mailparse(input: &[u8], kind: Kind) -> Output {
         };
         values
             .into_iter()
+            .filter(|value| value != "UNKNOWN")
+            .collect()
+    })
+}
+
+pub(crate) fn astral_email_reused(parser: &mut Parser, input: &[u8], kind: Kind) -> Output {
+    let message = parser.parse(input);
+    if matches!(kind, Kind::Wheel) {
+        return wheel(message.headers().map(|header| {
+            (
+                header.name().to_owned(),
+                header.decoded_value().unwrap().into_owned(),
+            )
+        }));
+    }
+    metadata(kind, message.body(), |name, all| {
+        message
+            .all(name)
+            .take(if all { usize::MAX } else { 1 })
+            .map(|header| header.decoded_value().unwrap().into_owned())
             .filter(|value| value != "UNKNOWN")
             .collect()
     })

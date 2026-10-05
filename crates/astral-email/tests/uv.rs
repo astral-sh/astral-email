@@ -43,10 +43,18 @@ fn packaging_headers_match_python() {
 
 #[test]
 fn packaging_field_extraction_matches_mailparse() {
+    let mut parser = astral_email::Parser::default();
     for case in support::cases() {
+        let expected = support::mailparse(&case.input, case.kind);
         assert_eq!(
             support::astral_email(&case.input, case.kind),
-            support::mailparse(&case.input, case.kind),
+            expected,
+            "{}",
+            case.name,
+        );
+        assert_eq!(
+            support::astral_email_reused(&mut parser, &case.input, case.kind),
+            expected,
             "{}",
             case.name,
         );
