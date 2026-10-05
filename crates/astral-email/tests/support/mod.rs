@@ -99,6 +99,80 @@ pub(crate) fn cases() -> Vec<Case> {
             kind: Kind::Publish,
         });
     }
+    let mut synthetic = |name: &str, value: &str, kind: Kind| {
+        let field = match kind {
+            Kind::Resolution => "Requires-Dist",
+            Kind::Publish => "Classifier",
+            Kind::Wheel => unreachable!(),
+        };
+        let input = format!(
+            "Metadata-Version: 2.4\nName: demo\nVersion: 1.0\n{}",
+            format!("{field}: {value}\n").repeat(32)
+        );
+        cases.push(Case {
+            name: format!("synthetic-{name}"),
+            input: input.into_bytes(),
+            kind,
+        });
+    };
+    for (name, value) in [
+        ("plain-ascii-long", "a".repeat(4_096)),
+        ("plain-utf8-long", "café 中文 ".repeat(512)),
+        (
+            "encoded-literal-prefix",
+            format!("{} =?utf-8?q?caf=C3=A9?= suffix", "prefix ".repeat(64)),
+        ),
+        (
+            "encoded-adjacent-same-label",
+            "=?utf-8?q?caf=C3=A9?= =?UTF-8?q?_package?=".to_owned(),
+        ),
+        (
+            "encoded-adjacent-different-label",
+            "=?utf-8?q?caf=C3=A9?= =?iso-8859-1?q?_package?=".to_owned(),
+        ),
+        (
+            "oversized-q-literal-heavy",
+            format!("=?utf-8?q?{}=5F?=", "a".repeat(4_096)),
+        ),
+        (
+            "oversized-q-hex-heavy",
+            format!("=?utf-8?q?{}?=", "=61".repeat(4_096)),
+        ),
+        (
+            "oversized-q-mixed",
+            format!("=?utf-8?q?{}?=", "alpha_beta=3D".repeat(512)),
+        ),
+    ] {
+        synthetic(name, &value, Kind::Publish);
+    }
+    synthetic(
+        "dependency-equals",
+        "dependency>=1.0,!=2.0,<=3.0; python_version >= '3.10' and os_name == 'posix'",
+        Kind::Resolution,
+    );
+    for length in [1, 16, 64, 256, 4_096] {
+        use base64::Engine;
+
+        let payload = base64::engine::general_purpose::STANDARD.encode(vec![b'a'; length]);
+        let name = if length >= 64 {
+            format!("oversized-b-{length}")
+        } else {
+            format!("b-{length}")
+        };
+        synthetic(&name, &format!("=?utf-8?b?{payload}?="), Kind::Publish);
+    }
+    for (name, newline) in [("lf", "\n"), ("crlf", "\r\n")] {
+        synthetic(
+            &format!("fold-short-{name}"),
+            &format!("short{newline} continuation"),
+            Kind::Publish,
+        );
+        synthetic(
+            &format!("fold-long-{name}"),
+            &format!("{}end", format!("{}{newline} ", "a".repeat(128)).repeat(32)),
+            Kind::Publish,
+        );
+    }
     cases
 }
 
