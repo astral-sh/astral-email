@@ -1,40 +1,22 @@
 # Conformance
 
-The parser targets CPython 3.12.13's
+Parsing follows CPython 3.12.13's
 `email.parser.BytesHeaderParser(policy=email.policy.compat32).parsebytes`.
 [Core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/)
-uses email headers and identifies `compat32` as its practical parsing standard.
-[WHEEL](https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-contents)
-uses the same basic header format. Metadata field validation remains the caller's
-responsibility.
+and [WHEEL](https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-contents)
+use this header format; metadata field validation remains the caller's responsibility.
 
 ## Raw parsing
 
-The 490 fixtures compare ordered names and values from `raw_items()`, body bytes,
-the initial Unix envelope line, and defect classes in Python's reported order.
-They cover every byte in a field name, LF/CRLF/CR and mixed line endings,
-continuations, empty and malformed fields, repeated names, envelope recovery,
-EOF, and opaque bodies. There are no excluded cases in this corpus. This is a
-focused compatibility suite, not a claim to implement every email RFC.
+Headers retain their names, order, and duplicates. Values remove leading spaces,
+tabs, and line endings and trailing line endings; all remaining bytes, including
+folding, encoded words, and invalid text, are preserved. LF, CRLF, and CR line
+endings are accepted. Malformed headers follow Python's recovery and defect
+ordering; defect messages and attached line data are omitted.
 
-Python decodes input bytes as ASCII with `surrogateescape`. The generator reverses
-that conversion to preserve bytes, including UTF-8 and invalid text. Parsing a
-Unicode string with `Parser` is a different operation: stringifying a header from
-`BytesHeaderParser` can replace non-ASCII bytes instead of decoding them as UTF-8.
-The Rust raw API retains those bytes and leaves text decoding explicit.
-
-Values follow `compat32.header_source_parse`: remove leading spaces, tabs and
-line endings, and trailing line endings; preserve interior folding and encoded
-words. Defects are `FirstHeaderLineIsContinuationDefect`,
-`MissingHeaderBodySeparatorDefect`, `InvalidHeaderDefect`, and
-`MisplacedEnvelopeHeaderDefect`. Python's defect messages and attached line data
-are not part of the comparison.
-
-A trailing `From ` line after headers is recovered into the body. If an empty
-separator follows it, Python omits that separator when joining the recovered
-line to the remaining body. This recovery can require an owned body; ordinary
-bodies borrow the source. The generator reads Python's private `_payload` because
-the public `get_payload()` may replace bytes or decode a transfer encoding.
+The initial `From ` envelope line is stored separately. A trailing `From ` line
+after headers is recovered into the body, omitting the empty separator if present.
+This can require an owned body; ordinary bodies borrow the source unchanged.
 
 ## Reproducing the corpus
 
@@ -46,37 +28,20 @@ python scripts/generate_conformance.py --check
 cargo test -p astral-mail-headers --test python
 ```
 
-`crates/astral-mail-headers/tests/fixtures/python.json` records the parser, policy and
-Python version. Each case has `name`, `input_hex`, ordered `headers` with
-`name_hex` and `value_hex`, `body_hex`, `unix_from_hex`, and `defects`.
-`body_offset` is the start of the body when it equals a source suffix, or `null`
-for recovery that joins noncontiguous bytes.
-
-For differential checks, both `scripts/generate_conformance.py --stdin` and the
-Rust `inspect` example accept JSON lines containing `{"input_hex": "..."}` and
-emit the same parsed fields, without the case name or input. Fixtures contain
-generated test data; generation and checking require no network access.
+The [fixtures](../crates/astral-mail-headers/tests/fixtures/python.json) compare
+raw headers, body bytes, the envelope line, and defects. For individual inputs,
+`generate_conformance.py --stdin` and the Rust `inspect` example accept JSON lines
+with an `input_hex` field. See [fuzzing](fuzzing.md) for differential fuzz tests.
 
 ## Decoding and exclusions
 
-Raw parsing does not unfold values or decode RFC 2047 words. Those operations
-belong to the separate [decoded-value accessor](decoding.md); its text and charset policy is
-not a promise that it equals Python's `compat32` header string conversion.
-See [Python's policy documentation](https://docs.python.org/3/library/email.policy.html#email.policy.Compat32)
-for the distinction between source parsing and value retrieval.
-
-The body is opaque. MIME trees, body transfer decoding, attachments, address and
-date grammars, writing, and mutation are outside this parser's scope.
+Raw parsing leaves text conversion to [`Header::decoded_value`](decoding.md).
+That accessor differs from [Python's `compat32` field lookup](https://docs.python.org/3/library/email.policy.html#email.policy.Compat32).
+MIME parsing, body decoding, address and date grammars, writing, and mutation are
+outside this parser's scope.
 
 ## Resource behavior
 
-The library forbids unsafe Rust. Parsing walks the header bytes without recursion;
-header storage grows with the number of fields and defects. Ordinary bodies are
-borrowed without scanning their contents. Lookups scan the ordered header list,
-and decoding allocates only when conversion is needed. There are no built-in
-size or field-count limits; applications should bound input reads according to
-their own resource budget. Allocation failure follows Rust's allocator behavior.
-
-The [fuzz targets](fuzzing.md) check arbitrary input and compare recovery with a
-live Python parser. This complements the fixed corpus and uv tests; it does not
-prove that all inputs are correct.
+Header storage grows with the number of fields and defects; lookups scan the
+header list. There are no built-in size or field-count limits, so callers must
+bound input reads to their resource budget.
