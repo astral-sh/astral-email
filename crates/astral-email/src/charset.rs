@@ -2,6 +2,25 @@
 
 /// Lowercase an email charset label, then apply CPython's codec-name normalization.
 pub(crate) fn lookup(name: &str) -> Option<&'static str> {
+    let common = match name.len() {
+        4 if name.eq_ignore_ascii_case("utf8") => Some("utf-8"),
+        5 if name.eq_ignore_ascii_case("utf-8") => Some("utf-8"),
+        5 if name.eq_ignore_ascii_case("ascii") => Some("ascii"),
+        6 if name.eq_ignore_ascii_case("latin1") => Some("iso8859-1"),
+        6 if name.eq_ignore_ascii_case("cp1252") => Some("cp1252"),
+        6 if name.eq_ignore_ascii_case("utf-16") => Some("utf-16"),
+        7 if name.eq_ignore_ascii_case("latin-1") => Some("iso8859-1"),
+        9 if name.eq_ignore_ascii_case("iso8859-1") => Some("iso8859-1"),
+        9 if name.eq_ignore_ascii_case("utf-8-sig") => Some("utf-8-sig"),
+        9 if name.eq_ignore_ascii_case("utf-16-be") => Some("utf-16-be"),
+        9 if name.eq_ignore_ascii_case("utf-16-le") => Some("utf-16-le"),
+        10 if name.eq_ignore_ascii_case("iso-8859-1") => Some("iso8859-1"),
+        12 if name.eq_ignore_ascii_case("windows-1252") => Some("cp1252"),
+        _ => None,
+    };
+    if common.is_some() {
+        return common;
+    }
     let mut normalized = String::with_capacity(name.len());
     let mut separator = false;
     for byte in name.to_lowercase().bytes() {
