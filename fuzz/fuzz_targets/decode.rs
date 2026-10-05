@@ -2,25 +2,13 @@
 
 use std::borrow::Cow;
 
-use astral_email::Message;
+#[path = "../../crates/astral-email/tests/support/decode_input.rs"]
+mod decode_input;
+
+use astral_email::{Header, Message};
 use libfuzzer_sys::fuzz_target;
 
-fuzz_target!(|bytes: &[u8]| {
-    if bytes.len() > 16_384 {
-        return;
-    }
-    // Keep every input line in one header value.
-    let mut source = Vec::with_capacity(bytes.len() * 2 + 5);
-    source.extend_from_slice(b"X: ");
-    for &byte in bytes {
-        source.push(byte);
-        if matches!(byte, b'\r' | b'\n') {
-            source.push(b' ');
-        }
-    }
-    source.extend_from_slice(b"\n\n");
-    let message = Message::parse(&source);
-    let header = message.first("X").unwrap();
+fn check_value(header: &Header<'_>) {
     let first = header.decoded_value();
     assert_eq!(first, header.decoded_value());
     if let Ok(Cow::Borrowed(value)) = first
@@ -34,4 +22,16 @@ fuzz_target!(|bytes: &[u8]| {
         assert!(value.len() <= raw.len() - start);
         assert_eq!(value.as_bytes(), &raw[start..start + value.len()]);
     }
+}
+
+fuzz_target!(|bytes: &[u8]| {
+    if bytes.len() > 16_384 {
+        return;
+    }
+    for header in Message::parse(bytes).headers() {
+        check_value(header);
+    }
+    let source = decode_input::wrap(bytes);
+    let message = Message::parse(&source);
+    check_value(message.first("X").unwrap());
 });

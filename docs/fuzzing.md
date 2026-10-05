@@ -12,8 +12,9 @@ Four targets accept arbitrary bytes:
 The Python target keeps one oracle process per fuzzer process. It uses the same
 byte-preserving JSON protocol as the [conformance suite](conformance.md), with
 no malformed-input exclusions. Set `ASTRAL_EMAIL_PYTHON` to select the pinned
-interpreter. The decoder target inserts continuation indentation after line
-endings so every input byte can reach a header value. It checks invariants;
+interpreter. The decoder target checks every header parsed directly from the
+input, then wraps the input as one value with continuation indentation after
+line endings, preserving CRLF pairs. It checks invariants;
 it is not an independent oracle for decoded values.
 
 `fuzz/seed_corpus.py` imports the raw parser and decoder fixtures, captured uv
