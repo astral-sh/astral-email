@@ -57,3 +57,23 @@ The example also checks that parsing an ordinary opaque 16 MiB body allocates
 exactly as much as parsing identical headers with an empty body. Python's unusual
 trailing-envelope recovery can require copying the body, as described in the
 [conformance contract](conformance.md#raw-parsing).
+
+## CodSpeed
+
+The `codspeed` benchmark tracks instruction and allocation changes in CI. It
+reuses the extraction cases above, checks their outputs against mailparse before
+measurement, and also measures parsing of the captured metadata and wheel files
+and decoding of the generated folded and encoded headers. Fixture loading and
+generation happen outside measurement; output destruction is included. The
+decoding benchmarks parse each message before measuring individual header values.
+
+```console
+cargo install cargo-codspeed --version 5.0.1 --locked
+cargo codspeed build -m simulation -m memory --profile profiling -p astral-email --bench codspeed --locked
+cargo codspeed run --bench codspeed
+```
+
+Local runs check that the instrumented benchmarks execute. The GitHub Actions
+workflow runs them under CodSpeed's simulation and memory instruments and uploads
+the measurements. The `parse` benchmark above retains the timing comparison with
+mailparse.
