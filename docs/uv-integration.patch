@@ -478,19 +478,32 @@
                      Ok(extra_name) => Some(extra_name),
 --- a/crates/uv-install-wheel/src/wheel.rs
 +++ b/crates/uv-install-wheel/src/wheel.rs
-@@ -8,7 +8,7 @@
+@@ -4,11 +4,11 @@ use std::io;
+ use std::io::{BufRead, BufReader, Read, Write};
+ use std::path::{Path, PathBuf};
+ 
++use astral_email::Message;
+ use data_encoding::BASE64URL_NOPAD;
  use fs_err as fs;
  use fs_err::{DirEntry, File};
  use itertools::Itertools;
 -use mailparse::parse_headers;
-+use astral_email::Message;
  use rustc_hash::FxHashMap;
  use sha2::{Digest, Sha256};
  use tracing::{debug, instrument, trace, warn};
-@@ -1083,15 +1083,12 @@
-     let file = BufReader::new(file);
-     let content = file.bytes().collect::<Result<Vec<u8>, _>>()?;
+@@ -1075,31 +1075,30 @@ pub fn validate_and_heal_record<'a>(
  
+ /// Parse a file with email message format such as WHEEL and METADATA
+ fn parse_email_message_file(
+-    file: impl Read,
++    mut file: impl Read,
+     debug_filename: &str,
+ ) -> Result<FxHashMap<String, Vec<String>>, Error> {
+     let mut data: FxHashMap<String, Vec<String>> = FxHashMap::default();
+-
+-    let file = BufReader::new(file);
+-    let content = file.bytes().collect::<Result<Vec<u8>, _>>()?;
+-
 -    let headers = parse_headers(content.as_slice())
 -        .map_err(|err| {
 -            Error::InvalidWheel(format!("Failed to parse `{debug_filename}` file: {err}"))
@@ -500,12 +513,33 @@
 -    for header in headers {
 -        let name = header.get_key(); // Will not be trimmed because if it contains space, mailparse will skip the header
 -        let mut value = header.get_value();
+-
+-        // Trim the value only if needed
+-        let trimmed_value = value.trim();
+-        if value != trimmed_value {
+-            value = trimmed_value.to_string();
++    let mut content = Vec::new();
++    file.read_to_end(&mut content)?;
++
 +    let message = Message::parse(&content);
 +    for header in message.headers() {
-+        let name = header.name().to_owned();
-+        let mut value = header.decoded_value().map_err(|err| {
++        let name = header.name();
++        let value = header.decoded_value().map_err(|err| {
 +            Error::InvalidWheel(format!("Failed to decode `{debug_filename}` file: {err}"))
-+        })?.into_owned();
++        })?;
++        let trimmed = value.trim();
++        let value = if trimmed.len() == value.len() {
++            value.into_owned()
++        } else {
++            trimmed.to_owned()
++        };
++        if let Some(values) = data.get_mut(name) {
++            values.push(value);
++        } else {
++            data.insert(name.to_owned(), vec![value]);
+         }
+-
+-        data.entry(name).or_default().push(value);
+     }
  
-         // Trim the value only if needed
-         let trimmed_value = value.trim();
+     Ok(data)
