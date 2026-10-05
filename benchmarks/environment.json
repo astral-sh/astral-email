@@ -1,15 +1,16 @@
 {
-  "measured_revision": "a9ad71884d68ca0e606dabfc9421334ed8966c86",
+  "measured_revision": "378ad501dc6071f01acf44b6062e75388b780c2e",
   "source_sha256": {
-    "Cargo.toml": "6bf145cc285726cbe5488e09d23fcb85269720c05b32bdbd9c340c561bea4020",
-    "Cargo.lock": "51943ed6ef89853fbda265867319b7ed6512bac299928a6db633d1ea4af75630",
-    "crates/astral-email/Cargo.toml": "17964088ebf045645111ca459485faa420f124d295455d1c7ce8da3b776e5a1c",
+    "Cargo.toml": "1b7e18430459452c37f2bb3796586556beef4a363aced8d91059f18ffed99def",
+    "Cargo.lock": "809f1cdc1f0ad539bb2d0028979fe0007f666791912b033f602c1e930ad8addf",
+    "crates/astral-email/Cargo.toml": "12f8eeefcf6ca3e1fbdf006054b6844520de44ba75e651ec6a257ae498446715",
     "crates/astral-email/benches/parse.rs": "944329bd2b046cd5bebdaf87488fae788958c653cfe1e1775af88b99567e4175",
     "crates/astral-email/tests/support/mod.rs": "69b61679c215d09d92b65bd8db91faab7fbdb08d7dc71a18b7de7d9521926efd",
-    "crates/astral-email/src/decode.rs": "5c37a79dab77ed15df3dbfa68b99c6bc0993bfd392a342cdd2ce34b4e60e5e0a",
-    "crates/astral-email/src/lib.rs": "5f1d0eb52eb73884afda9e5c4013e03f464bc3ab7df615a123861ce18fa9150f"
+    "crates/astral-email/src/charset.rs": "bbd9be35c5052e863dea66b97ba1dca57ff678204518a27f20e930dbdd1af89c",
+    "crates/astral-email/src/decode.rs": "6c090a6aa8c7f6df2e53ddfafb2661be50650c5cd5e7dcf6428a982d8de3858a",
+    "crates/astral-email/src/lib.rs": "c291542d751ea2ef41e859add74e037eaa1a40543ca94d2c68797b5e41ce75aa"
   },
-  "date": "2026-10-05",
+  "date": "2026-10-04",
   "cpu": "AMD EPYC-Milan (KVM, x86_64)",
   "pinned_cpu": 26,
   "kernel": "Linux 6.8.0-106-generic",
@@ -44,6 +45,7 @@
     "allocator": "stats_alloc 0.1.10 wrapping System",
     "scope": "Same owned-output extraction as timing; includes drop; fixture loading excluded",
     "body_check": "Raw parse allocation statistics equal for identical headers with empty and 16 MiB opaque bodies",
-    "source_revision": "0a8bf378ac6a04b46a7f96d240366d5dafa0e53c"
-  }
+    "source_revision": "4a4bffb676af5373322e2125ec7eb3070c3454be"
+  },
+  "timezone": "America/New_York"
 }

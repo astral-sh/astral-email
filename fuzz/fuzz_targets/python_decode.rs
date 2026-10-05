@@ -5,7 +5,7 @@ mod python;
 
 use std::sync::{Mutex, OnceLock};
 
-use astral_email::Message;
+use astral_email::{DecodeError, Message};
 use libfuzzer_sys::fuzz_target;
 use python::Oracle;
 use serde_json::json;
@@ -20,23 +20,15 @@ fuzz_target!(|value: &[u8]| {
     let value = str::from_utf8(value).unwrap();
     let source = format!("X:{value}");
     let message = Message::parse(source.as_bytes());
-    let actual = message.first("X").unwrap().decoded_value();
+    let actual = match message.first("X").unwrap().decoded_value() {
+        Ok(value) => json!({ "value": value }),
+        Err(DecodeError::InvalidBase64) => json!({ "error": "invalid_base64" }),
+        Err(DecodeError::UnsupportedCharset(_)) => json!({ "error": "unsupported_charset" }),
+    };
     let expected = ORACLE
         .get_or_init(|| Mutex::new(Oracle::start("decode")))
         .lock()
         .unwrap()
         .inspect(&json!({ "value": value }));
-    // Both must reject invalid values; multiple errors have no precedence contract.
-    if expected.get("error").is_some() {
-        assert!(
-            actual.is_err(),
-            "Python rejected a value we accepted: {value:?}"
-        );
-    } else {
-        assert_eq!(
-            actual.as_deref().ok(),
-            Some(expected["value"].as_str().expect("Python returned text")),
-            "{value:?}",
-        );
-    }
+    assert_eq!(actual, expected, "{value:?}");
 });

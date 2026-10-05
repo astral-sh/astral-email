@@ -6,15 +6,15 @@ parsing, equivalent owned field extraction, and output destruction.
 
 | Allocator | Geometric mean speedup, run 1 | Run 2 | Smallest speedup across both runs |
 | --- | ---: | ---: | ---: |
-| System | 2.39× | 2.37× | 1.78× |
-| jemalloc | 2.25× | 2.25× | 1.74× |
+| System | 2.36× | 2.37× | 1.66× |
+| jemalloc | 2.24× | 2.21× | 1.62× |
 
 The [per-workload results](../benchmarks/results.csv) retain medians, p10/p90,
 and allocation counts. [Environment and source hashes](../benchmarks/environment.json)
 identify the measured implementation. Ratios above are mailparse time divided by
 astral-email time; the geometric mean weights each workload equally.
 
-Measurements were taken on 2026-10-05 on a Linux x86-64 AMD EPYC Milan virtual
+Measurements were taken on 2026-10-04 (America/New_York) on a Linux x86-64 AMD EPYC Milan virtual
 machine, pinned to CPU 26. Both parsers used the same release binary and allocator,
 with thin LTO and one codegen unit. The compiler was Rust 1.98.1-dev, commit
 `f6270311094cd4b48fefce03debdffcf8396c64c`, LLVM 22.1.8, with experimental build
