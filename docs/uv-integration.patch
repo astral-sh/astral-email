@@ -5,7 +5,7 @@
  libc = { version = "0.2.0", default-features = false, features = ["std"] }
  linux-raw-sys = { version = "0.12.1", default-features = false, features = ["ioctl"] }
 -mailparse = { version = "0.16.0", default-features = false }
-+astral-email = { path = "../crates/astral-email" }
++astral-mail-headers = { path = "../crates/astral-mail-headers" }
  md-5 = { version = "0.11.0", default-features = false }
  memchr = { version = "2.7.4", default-features = false, features = ["std"] }
  nix = { version = "0.31.2", default-features = false, features = ["resource", "signal"] }
@@ -16,7 +16,7 @@
  itertools = { workspace = true }
  jiff = { workspace = true, features = ["serde"] }
 -mailparse = { workspace = true }
-+astral-email = { workspace = true }
++astral-mail-headers = { workspace = true }
  petgraph = { workspace = true }
  regex = { workspace = true }
  rkyv = { workspace = true }
@@ -27,7 +27,7 @@
  fs-err = { workspace = true }
  itertools = { workspace = true }
 -mailparse = { workspace = true }
-+astral-email = { workspace = true }
++astral-mail-headers = { workspace = true }
  owo-colors = { workspace = true }
  pathdiff = { workspace = true }
  regex = { workspace = true }
@@ -38,7 +38,7 @@
  use std::str::Utf8Error;
  
 -use mailparse::{MailHeaderMap, MailParseError};
-+use astral_email::{DecodeError, Message};
++use astral_mail_headers::{DecodeError, Message};
  use thiserror::Error;
  
  use uv_normalize::InvalidNameError;
@@ -331,7 +331,7 @@
  use fs_err::{DirEntry, File};
  use itertools::Itertools;
 -use mailparse::parse_headers;
-+use astral_email::Message;
++use astral_mail_headers::Message;
  use rustc_hash::FxHashMap;
  use sha2::{Digest, Sha256};
  use tracing::{debug, instrument, trace, warn};

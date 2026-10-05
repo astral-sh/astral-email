@@ -27,7 +27,7 @@ def seed_inputs():
             return
         inputs[hashlib.sha256(data).hexdigest()] = data
 
-    fixtures = ROOT / "crates/astral-email/tests/fixtures"
+    fixtures = ROOT / "crates/astral-mail-headers/tests/fixtures"
     cases = json.loads(read(fixtures / "python.json"))["cases"]
     report["python_inputs"] = len(cases)
     for case in cases:

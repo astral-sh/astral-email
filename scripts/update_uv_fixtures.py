@@ -13,7 +13,7 @@ import zipfile
 
 REVISION = "46b84fd0bfec23b72f29e8e2185ba68a65052f48"
 ROOT = Path(__file__).resolve().parents[1]
-DESTINATION = ROOT / "crates/astral-email/tests/fixtures/uv"
+DESTINATION = ROOT / "crates/astral-mail-headers/tests/fixtures/uv"
 
 
 def main():

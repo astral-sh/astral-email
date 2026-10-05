@@ -52,7 +52,7 @@ def main():
         subprocess.run(["git", "apply", patch], cwd=checkout, check=True)
     check_test_modules(checkout)
     for crate in ("uv-pypi-types", "uv-install-wheel"):
-        destination = checkout / "crates" / crate / "tests" / "astral_email.rs"
+        destination = checkout / "crates" / crate / "tests" / "astral_mail_headers.rs"
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((ROOT / "scripts/uv-tests" / f"{crate}.rs").read_bytes())
     if args.apply_only:
@@ -64,7 +64,7 @@ def main():
     subprocess.run(
         cargo + [
             "test", "-p", "uv-pypi-types", "-p", "uv-install-wheel",
-            "--lib", "--test", "astral_email",
+            "--lib", "--test", "astral_mail_headers",
         ],
         cwd=checkout,
         check=True,

@@ -1,6 +1,6 @@
 //! Charset labels that Python does not resolve to supported codecs.
 
-use astral_email::{DecodeError, Message};
+use astral_mail_headers::{DecodeError, Message};
 
 #[test]
 fn rejects_unknown_and_invalid_labels() {

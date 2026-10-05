@@ -1,2 +1,2 @@
-crates/astral-email/tests/fixtures/uv/* -text -whitespace
+crates/astral-mail-headers/tests/fixtures/uv/* -text -whitespace
 docs/*.patch -whitespace

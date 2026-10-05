@@ -7,7 +7,7 @@ mod support;
 use std::alloc::System;
 use std::hint::black_box;
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 use stats_alloc::{INSTRUMENTED_SYSTEM, Region, Stats, StatsAlloc};
 
 #[global_allocator]
@@ -23,14 +23,14 @@ fn main() {
     println!("case,parser,allocations,reallocations,bytes_allocated,bytes_reallocated");
     for case in support::cases() {
         assert_eq!(
-            support::astral_email(&case.input, case.kind),
+            support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
             "{}",
             case.name,
         );
-        let astral = measure(|| support::astral_email(&case.input, case.kind));
+        let astral = measure(|| support::astral_mail_headers(&case.input, case.kind));
         let baseline = measure(|| support::mailparse(&case.input, case.kind));
-        for (name, stats) in [("astral-email", astral), ("mailparse", baseline)] {
+        for (name, stats) in [("astral-mail-headers", astral), ("mailparse", baseline)] {
             println!(
                 "{},{},{},{},{},{}",
                 case.name,

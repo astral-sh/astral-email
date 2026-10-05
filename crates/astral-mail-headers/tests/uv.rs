@@ -2,7 +2,7 @@
 
 mod support;
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 
 #[test]
 fn packaging_headers_match_python() {
@@ -45,7 +45,7 @@ fn packaging_headers_match_python() {
 fn packaging_field_extraction_matches_mailparse() {
     for case in support::cases() {
         assert_eq!(
-            support::astral_email(&case.input, case.kind),
+            support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
             "{}",
             case.name,

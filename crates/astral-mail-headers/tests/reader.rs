@@ -1,6 +1,6 @@
 //! Borrowing, lookup and recovery contracts of the header reader.
 
-use astral_email::{Defect, Message};
+use astral_mail_headers::{Defect, Message};
 
 #[test]
 fn preserves_order_and_borrows_values() {
