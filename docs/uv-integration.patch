@@ -147,44 +147,191 @@
      }
 --- a/crates/uv-pypi-types/src/metadata/metadata23.rs
 +++ b/crates/uv-pypi-types/src/metadata/metadata23.rs
-@@ -118,55 +118,55 @@ pub struct Metadata23 {
+@@ -8,7 +8,7 @@ use std::str::FromStr;
+ use indexmap::IndexMap;
+ 
+ use crate::MetadataError;
+-use crate::metadata::Headers;
++use astral_email::{DecodeError, Header, Message};
+ 
+ /// Core Metadata 2.x as specified in
+ /// <https://packaging.python.org/specifications/core-metadata/>.
+@@ -115,58 +115,194 @@ pub struct Metadata23 {
+     pub dynamic: Vec<String>,
+ }
+ 
++/// Publication reads most metadata fields, so classify their names once.
++#[derive(Clone, Copy)]
++enum Field {
++    MetadataVersion,
++    Name,
++    Version,
++    Platform,
++    SupportedPlatform,
++    Summary,
++    Description,
++    Keywords,
++    HomePage,
++    DownloadUrl,
++    Author,
++    AuthorEmail,
++    License,
++    LicenseExpression,
++    LicenseFile,
++    Classifier,
++    RequiresDist,
++    ProvidesDist,
++    ObsoletesDist,
++    Maintainer,
++    MaintainerEmail,
++    RequiresPython,
++    RequiresExternal,
++    ProjectUrl,
++    ProvidesExtra,
++    ImportName,
++    ImportNamespace,
++    DescriptionContentType,
++    Dynamic,
++}
++
++impl Field {
++    fn from_name(name: &str) -> Option<Self> {
++        match name.len() {
++            4 if name.eq_ignore_ascii_case("Name") => Some(Self::Name),
++            6 if name.eq_ignore_ascii_case("Author") => Some(Self::Author),
++            7 if name.eq_ignore_ascii_case("Version") => Some(Self::Version),
++            7 if name.eq_ignore_ascii_case("Summary") => Some(Self::Summary),
++            7 if name.eq_ignore_ascii_case("License") => Some(Self::License),
++            7 if name.eq_ignore_ascii_case("Dynamic") => Some(Self::Dynamic),
++            8 if name.eq_ignore_ascii_case("Platform") => Some(Self::Platform),
++            8 if name.eq_ignore_ascii_case("Keywords") => Some(Self::Keywords),
++            9 if name.eq_ignore_ascii_case("Home-Page") => Some(Self::HomePage),
++            10 if name.eq_ignore_ascii_case("Classifier") => Some(Self::Classifier),
++            10 if name.eq_ignore_ascii_case("Maintainer") => Some(Self::Maintainer),
++            11 if name.eq_ignore_ascii_case("Description") => Some(Self::Description),
++            11 if name.eq_ignore_ascii_case("Project-URL") => Some(Self::ProjectUrl),
++            11 if name.eq_ignore_ascii_case("Import-Name") => Some(Self::ImportName),
++            12 if name.eq_ignore_ascii_case("Download-URL") => Some(Self::DownloadUrl),
++            12 if name.eq_ignore_ascii_case("Author-email") => Some(Self::AuthorEmail),
++            12 if name.eq_ignore_ascii_case("License-File") => Some(Self::LicenseFile),
++            13 if name.eq_ignore_ascii_case("Requires-Dist") => Some(Self::RequiresDist),
++            13 if name.eq_ignore_ascii_case("Provides-Dist") => Some(Self::ProvidesDist),
++            14 if name.eq_ignore_ascii_case("Obsoletes-Dist") => Some(Self::ObsoletesDist),
++            14 if name.eq_ignore_ascii_case("Provides-Extra") => Some(Self::ProvidesExtra),
++            15 if name.eq_ignore_ascii_case("Requires-Python") => Some(Self::RequiresPython),
++            16 if name.eq_ignore_ascii_case("Metadata-Version") => Some(Self::MetadataVersion),
++            16 if name.eq_ignore_ascii_case("Maintainer-email") => Some(Self::MaintainerEmail),
++            16 if name.eq_ignore_ascii_case("Import-Namespace") => Some(Self::ImportNamespace),
++            17 if name.eq_ignore_ascii_case("Requires-External") => Some(Self::RequiresExternal),
++            18 if name.eq_ignore_ascii_case("Supported-Platform") => Some(Self::SupportedPlatform),
++            18 if name.eq_ignore_ascii_case("License-Expression") => Some(Self::LicenseExpression),
++            24 if name.eq_ignore_ascii_case("Description-Content-Type") => {
++                Some(Self::DescriptionContentType)
++            }
++            _ => None,
++        }
++    }
++}
++
++struct PublicationHeaders<'a> {
++    message: Message<'a>,
++    first: [usize; 29],
++    next: Vec<usize>,
++}
++
++impl<'a> PublicationHeaders<'a> {
++    fn parse(content: &'a [u8]) -> Self {
++        let message = Message::parse(content);
++        let end = message.headers().len();
++        let mut first = [end; 29];
++        let mut next = Vec::new();
++        // The end index terminates each chain. Reversing preserves source order.
++        for (index, header) in message.headers().iter().enumerate().rev() {
++            if let Some(field) = Field::from_name(header.name()) {
++                let previous = first[field as usize];
++                if previous != end {
++                    if next.is_empty() {
++                        next.resize(end, end);
++                    }
++                    next[index] = previous;
++                }
++                first[field as usize] = index;
++            }
++        }
++        Self {
++            message,
++            first,
++            next,
++        }
++    }
++
++    fn headers(&self, field: Field) -> impl Iterator<Item = &Header<'a>> {
++        let mut index = self.first[field as usize];
++        std::iter::from_fn(move || {
++            let header = self.message.headers().get(index)?;
++            index = self
++                .next
++                .get(index)
++                .copied()
++                .unwrap_or(self.message.headers().len());
++            Some(header)
++        })
++    }
++
++    fn get_first_value(&self, field: Field) -> Result<Option<String>, DecodeError> {
++        self.headers(field)
++            .next()
++            .map(|header| header.decoded_value().map(|value| value.into_owned()))
++            .transpose()
++            .map(|value| value.filter(|value| value != "UNKNOWN"))
++    }
++
++    fn get_all_values(&self, field: Field) -> Result<impl Iterator<Item = String>, DecodeError> {
++        let values = self
++            .headers(field)
++            .map(|header| header.decoded_value().map(|value| value.into_owned()))
++            .collect::<Result<Vec<_>, _>>()?;
++        Ok(values.into_iter().filter(|value| value != "UNKNOWN"))
++    }
++}
++
  impl Metadata23 {
      /// Parse distribution metadata from metadata `MetadataError`
      pub fn parse(content: &[u8]) -> Result<Self, MetadataError> {
 -        let headers = Headers::parse(content)?;
-+        let headers = Headers::parse(content);
++        let headers = PublicationHeaders::parse(content);
  
          let metadata_version = headers
 -            .get_first_value("Metadata-Version")
-+            .get_first_value("Metadata-Version")?
++            .get_first_value(Field::MetadataVersion)?
              .ok_or(MetadataError::FieldNotFound("Metadata-Version"))?;
          let name = headers
 -            .get_first_value("Name")
-+            .get_first_value("Name")?
++            .get_first_value(Field::Name)?
              .ok_or(MetadataError::FieldNotFound("Name"))?;
          let version = headers
 -            .get_first_value("Version")
-+            .get_first_value("Version")?
++            .get_first_value(Field::Version)?
              .ok_or(MetadataError::FieldNotFound("Version"))?;
 -        let platforms = headers.get_all_values("Platform").collect();
 -        let supported_platforms = headers.get_all_values("Supported-Platform").collect();
 -        let summary = headers.get_first_value("Summary");
 -        let body = str::from_utf8(&content[headers.body_start..])
 -            .map_err(MetadataError::DescriptionEncoding)?;
-+        let platforms = headers.get_all_values("Platform")?.collect();
-+        let supported_platforms = headers.get_all_values("Supported-Platform")?.collect();
-+        let summary = headers.get_first_value("Summary")?;
++        let platforms = headers.get_all_values(Field::Platform)?.collect();
++        let supported_platforms = headers.get_all_values(Field::SupportedPlatform)?.collect();
++        let summary = headers.get_first_value(Field::Summary)?;
 +        let body =
 +            str::from_utf8(headers.message.body()).map_err(MetadataError::DescriptionEncoding)?;
          let description = if body.trim().is_empty() {
 -            headers.get_first_value("Description")
-+            headers.get_first_value("Description")?
++            headers.get_first_value(Field::Description)?
          } else {
              Some(body.to_string())
          };
          let keywords = headers
 -            .get_first_value("Keywords")
-+            .get_first_value("Keywords")?
++            .get_first_value(Field::Keywords)?
              .as_deref()
              .map(Keywords::from_metadata);
 -        let home_page = headers.get_first_value("Home-Page");
@@ -206,32 +353,33 @@
 -        let provides_extra = headers.get_all_values("Provides-Extra").collect();
 -        let import_names: Vec<String> = headers.get_all_values("Import-Name").collect();
 -        let import_namespaces: Vec<String> = headers.get_all_values("Import-Namespace").collect();
-+        let home_page = headers.get_first_value("Home-Page")?;
-+        let download_url = headers.get_first_value("Download-URL")?;
-+        let author = headers.get_first_value("Author")?;
-+        let author_email = headers.get_first_value("Author-email")?;
-+        let license = headers.get_first_value("License")?;
-+        let license_expression = headers.get_first_value("License-Expression")?;
-+        let license_files = headers.get_all_values("License-File")?.collect();
-+        let classifiers = headers.get_all_values("Classifier")?.collect();
-+        let requires_dist = headers.get_all_values("Requires-Dist")?.collect();
-+        let provides_dist = headers.get_all_values("Provides-Dist")?.collect();
-+        let obsoletes_dist = headers.get_all_values("Obsoletes-Dist")?.collect();
-+        let maintainer = headers.get_first_value("Maintainer")?;
-+        let maintainer_email = headers.get_first_value("Maintainer-email")?;
-+        let requires_python = headers.get_first_value("Requires-Python")?;
-+        let requires_external = headers.get_all_values("Requires-External")?.collect();
-+        let project_urls = ProjectUrls::from_iter_str(headers.get_all_values("Project-URL")?);
-+        let provides_extra = headers.get_all_values("Provides-Extra")?.collect();
-+        let import_names: Vec<String> = headers.get_all_values("Import-Name")?.collect();
-+        let import_namespaces: Vec<String> = headers.get_all_values("Import-Namespace")?.collect();
++        let home_page = headers.get_first_value(Field::HomePage)?;
++        let download_url = headers.get_first_value(Field::DownloadUrl)?;
++        let author = headers.get_first_value(Field::Author)?;
++        let author_email = headers.get_first_value(Field::AuthorEmail)?;
++        let license = headers.get_first_value(Field::License)?;
++        let license_expression = headers.get_first_value(Field::LicenseExpression)?;
++        let license_files = headers.get_all_values(Field::LicenseFile)?.collect();
++        let classifiers = headers.get_all_values(Field::Classifier)?.collect();
++        let requires_dist = headers.get_all_values(Field::RequiresDist)?.collect();
++        let provides_dist = headers.get_all_values(Field::ProvidesDist)?.collect();
++        let obsoletes_dist = headers.get_all_values(Field::ObsoletesDist)?.collect();
++        let maintainer = headers.get_first_value(Field::Maintainer)?;
++        let maintainer_email = headers.get_first_value(Field::MaintainerEmail)?;
++        let requires_python = headers.get_first_value(Field::RequiresPython)?;
++        let requires_external = headers.get_all_values(Field::RequiresExternal)?.collect();
++        let project_urls = ProjectUrls::from_iter_str(headers.get_all_values(Field::ProjectUrl)?);
++        let provides_extra = headers.get_all_values(Field::ProvidesExtra)?.collect();
++        let import_names: Vec<String> = headers.get_all_values(Field::ImportName)?.collect();
++        let import_namespaces: Vec<String> =
++            headers.get_all_values(Field::ImportNamespace)?.collect();
          // PEP 794 requires rejecting modules that are used both in import names and import
          // namespaces. (Nesting is allowed, only exact matches are forbidden.)
          validate_import_name_overlap(&import_names, &import_namespaces)?;
 -        let description_content_type = headers.get_first_value("Description-Content-Type");
 -        let dynamic = headers.get_all_values("Dynamic").collect();
-+        let description_content_type = headers.get_first_value("Description-Content-Type")?;
-+        let dynamic = headers.get_all_values("Dynamic")?.collect();
++        let description_content_type = headers.get_first_value(Field::DescriptionContentType)?;
++        let dynamic = headers.get_all_values(Field::Dynamic)?.collect();
          Ok(Self {
              metadata_version,
              name,
