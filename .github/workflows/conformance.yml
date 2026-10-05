@@ -16,7 +16,7 @@ concurrency:
 jobs:
   python:
     name: Python compat32
-    runs-on: nscloud-ubuntu-24.04-amd64-4x8
+    runs-on: ${{ github.repository_owner == 'astral-sh' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

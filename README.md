@@ -34,7 +34,7 @@ cargo test --workspace --all-targets --all-features --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 ```
 
-CI tests Linux AMD64 and ARM64 on Namespace runners.
+CI tests Linux AMD64 and ARM64 on GitHub-hosted runners.
 
 ## License
 
