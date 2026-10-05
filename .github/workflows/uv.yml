@@ -16,7 +16,7 @@ concurrency:
 jobs:
   uv:
     name: Pinned uv library tests
-    runs-on: nscloud-ubuntu-24.04-amd64-8x16
+    runs-on: ${{ github.repository_owner == 'astral-sh' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-24.04' }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
