@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::fmt;
 
 use base64::Engine;
-use base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig};
+use base64::engine::general_purpose::GeneralPurposeConfig;
 
 /// An encoded header word could not be decoded.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -34,7 +34,7 @@ impl std::error::Error for DecodeError {}
 /// Unicode text beside encoded words remains Unicode. Invalid raw UTF-8 and
 /// malformed bytes in a supported charset become U+FFFD.
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
-    let text = String::from_utf8_lossy(raw);
+    let text = encoding_rs::UTF_8.decode_without_bom_handling(raw).0;
     let unfolded = unfold(&text);
     if !has_encoded_word(&unfolded) {
         return Ok(match unfolded {
@@ -265,10 +265,19 @@ fn decode_q(value: &str) -> Vec<u8> {
 
 /// Match Python's permissive Base64 filtering and its original-length padding.
 fn decode_b(value: &str) -> Result<Vec<u8>, DecodeError> {
-    const ENGINE: GeneralPurpose = GeneralPurpose::new(
-        &base64::alphabet::STANDARD,
-        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
-    );
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    static ENGINE: std::sync::LazyLock<base64::engine::simd::Simd> =
+        std::sync::LazyLock::new(|| {
+            base64::engine::simd::Simd::standard(
+                GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
+            )
+        });
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    const ENGINE: base64::engine::general_purpose::GeneralPurpose =
+        base64::engine::general_purpose::GeneralPurpose::new(
+            &base64::alphabet::STANDARD,
+            GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
+        );
     let padding = (4 - value.chars().count() % 4) % 4;
     let mut filtered = Vec::new();
     let mut group = 0;
@@ -332,9 +341,11 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
             }
         }
         "iso8859-1" => encoding_rs::mem::decode_latin1(bytes),
-        "utf-8" => String::from_utf8_lossy(bytes),
+        "utf-8" => encoding_rs::UTF_8.decode_without_bom_handling(bytes).0,
         "utf-8-sig" => {
-            String::from_utf8_lossy(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes))
+            encoding_rs::UTF_8
+                .decode_without_bom_handling(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes))
+                .0
         }
         "utf-16" => {
             let (encoding, bytes) = if let Some(bytes) = bytes.strip_prefix(b"\xfe\xff") {
@@ -388,6 +399,34 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
 mod tests {
     use super::{DecodeError, decode};
     use std::borrow::Cow;
+
+    #[test]
+    fn utf8_replacement_matches_std() {
+        for first in 0..=u8::MAX {
+            for second in 0..=u8::MAX {
+                let bytes = [first, second];
+                assert_eq!(
+                    super::decode_charset("utf-8", &bytes).unwrap(),
+                    String::from_utf8_lossy(&bytes),
+                );
+            }
+        }
+        for invalid in [
+            b"\xed\xa0\x80".as_slice(),
+            b"\xf0\x80\x80A",
+            b"\xf4\x90\x80\x80",
+        ] {
+            for offset in [0, 15, 16, 31, 32, 63, 64, 127, 128] {
+                let mut bytes = vec![b'a'; offset];
+                bytes.extend_from_slice(invalid);
+                bytes.extend_from_slice(&[b'z'; 128]);
+                assert_eq!(
+                    super::decode_charset("utf-8", &bytes).unwrap(),
+                    String::from_utf8_lossy(&bytes),
+                );
+            }
+        }
+    }
 
     #[test]
     fn ordinary_values_remain_borrowed() {

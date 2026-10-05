@@ -20,6 +20,13 @@ def word(charset: str, data: bytes, encoding: str) -> str:
 
 
 def values():
+    randomizer = random.Random(1)
+    for size in [47, 48, 49, 63, 64, 65, 127, 128, 129, 1024, 16384]:
+        data = randomizer.randbytes(size)
+        payload = base64.b64encode(data).decode("ascii")
+        for charset in ["utf-8", "ascii", "iso-8859-1", "windows-1252"]:
+            for value in [payload, payload.rstrip("="), payload + "===ignored", payload + "A"]:
+                yield f"=?{charset}?B?{value}?="
     for separator in ["", " ", " text ", "\v"]:
         unknown = "=?unknown?q?a?="
         valid = "=?utf-8?q?b?="
