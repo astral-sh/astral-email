@@ -10,7 +10,7 @@ responsibility.
 
 ## Raw parsing
 
-The fixtures compare ordered names and values from `raw_items()`, body bytes,
+The 490 fixtures compare ordered names and values from `raw_items()`, body bytes,
 the initial Unix envelope line, and defect classes in Python's reported order.
 They cover every byte in a field name, LF/CRLF/CR and mixed line endings,
 continuations, empty and malformed fields, repeated names, envelope recovery,
@@ -60,7 +60,7 @@ generated test data; generation and checking require no network access.
 ## Decoding and exclusions
 
 Raw parsing does not unfold values or decode RFC 2047 words. Those operations
-belong to the separate decoded-value accessor; its text and charset policy is
+belong to the separate [decoded-value accessor](decoding.md); its text and charset policy is
 not a promise that it equals Python's `compat32` header string conversion.
 See [Python's policy documentation](https://docs.python.org/3/library/email.policy.html#email.policy.Compat32)
 for the distinction between source parsing and value retrieval.
