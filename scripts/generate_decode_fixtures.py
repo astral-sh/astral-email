@@ -16,7 +16,7 @@ import sys
 
 
 PYTHON_VERSION = "3.12.13"
-FIXTURES = Path(__file__).resolve().parents[1] / "crates/astral-email/tests/fixtures/decode.json"
+FIXTURES = Path(__file__).resolve().parents[1] / "crates/astral-mail-headers/tests/fixtures/decode.json"
 CODECS = {"ascii", "iso8859-1", "cp1252", "utf-8", "utf-8-sig", "utf-16", "utf-16-be", "utf-16-le"}
 
 

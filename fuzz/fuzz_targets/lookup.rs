@@ -1,6 +1,6 @@
 #![no_main]
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|source: &[u8]| {

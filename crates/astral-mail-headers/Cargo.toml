@@ -1,5 +1,5 @@
 [package]
-name = "astral-email"
+name = "astral-mail-headers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

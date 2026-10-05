@@ -43,10 +43,10 @@ Run with CPython 3.12.13:
 ```console
 python scripts/generate_conformance.py
 python scripts/generate_conformance.py --check
-cargo test -p astral-email --test python
+cargo test -p astral-mail-headers --test python
 ```
 
-`crates/astral-email/tests/fixtures/python.json` records the parser, policy and
+`crates/astral-mail-headers/tests/fixtures/python.json` records the parser, policy and
 Python version. Each case has `name`, `input_hex`, ordered `headers` with
 `name_hex` and `value_hex`, `body_hex`, `unix_from_hex`, and `defects`.
 `body_offset` is the start of the body when it equals a source suffix, or `null`

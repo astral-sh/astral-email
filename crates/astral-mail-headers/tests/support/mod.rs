@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 use mailparse::MailHeaderMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -299,7 +299,7 @@ fn wheel(headers: impl Iterator<Item = (String, String)>) -> Output {
     Output::Wheel(fields)
 }
 
-pub(crate) fn astral_email(input: &[u8], kind: Kind) -> Output {
+pub(crate) fn astral_mail_headers(input: &[u8], kind: Kind) -> Output {
     let message = Message::parse(input);
     if matches!(kind, Kind::Wheel) {
         return wheel(message.headers().iter().map(|header| {

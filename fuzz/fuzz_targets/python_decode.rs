@@ -5,7 +5,7 @@ mod python;
 
 use std::sync::{Mutex, OnceLock};
 
-use astral_email::{DecodeError, Message};
+use astral_mail_headers::{DecodeError, Message};
 use libfuzzer_sys::fuzz_target;
 use python::Oracle;
 use serde_json::json;
