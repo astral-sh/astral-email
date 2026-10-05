@@ -2,6 +2,7 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::io::Write;
 
 use base64::Engine;
 use base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig};
@@ -237,7 +238,14 @@ fn is_whitespace(character: char) -> bool {
     character.is_whitespace() || matches!(character, '\u{1c}'..='\u{1f}')
 }
 
-/// Convert non-ASCII encoded payload text as Python's `raw-unicode-escape` does.
+/// Match Python's `raw-unicode-escape` conversion for encoded-word payloads.
+///
+/// ASCII stays borrowed; Latin-1 characters become single bytes, and larger code
+/// points become fixed-width `\uXXXX` or `\UXXXXXXXX` escapes.
+///
+/// ```python
+/// "café €😀".encode("raw-unicode-escape") == b"caf\xe9 \\u20ac\\U0001f600"
+/// ```
 fn payload_bytes(value: &str) -> Cow<'_, [u8]> {
     if value.is_ascii() {
         return Cow::Borrowed(value.as_bytes());
@@ -247,9 +255,9 @@ fn payload_bytes(value: &str) -> Cow<'_, [u8]> {
         if u32::from(character) <= 255 {
             bytes.push(character as u8);
         } else if u32::from(character) <= 0xffff {
-            bytes.extend_from_slice(format!("\\u{:04x}", u32::from(character)).as_bytes());
+            write!(bytes, "\\u{:04x}", u32::from(character)).expect("writing to a Vec cannot fail");
         } else {
-            bytes.extend_from_slice(format!("\\U{:08x}", u32::from(character)).as_bytes());
+            write!(bytes, "\\U{:08x}", u32::from(character)).expect("writing to a Vec cannot fail");
         }
     }
     Cow::Owned(bytes)
