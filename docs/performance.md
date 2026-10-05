@@ -60,12 +60,10 @@ trailing-envelope recovery can require copying the body, as described in the
 
 ## CodSpeed
 
-The `codspeed` benchmark tracks instruction and allocation changes in CI. It
-reuses the extraction cases above, checks their outputs against mailparse before
-measurement, and also measures parsing of the captured metadata and wheel files
-and decoding of the generated folded and encoded headers. Fixture loading and
-generation happen outside measurement; output destruction is included. The
-decoding benchmarks parse each message before measuring individual header values.
+CodSpeed tracks instructions and allocations for parsing, metadata extraction,
+and header decoding. Extraction outputs are checked against mailparse before
+measurement. Fixture setup and, for decoding benchmarks, message parsing are
+excluded; output destruction is included.
 
 ```console
 cargo install cargo-codspeed --version 5.0.1 --locked
@@ -73,7 +71,5 @@ cargo codspeed build -m simulation -m memory --profile profiling -p astral-mail-
 cargo codspeed run --bench codspeed
 ```
 
-Local runs check that the instrumented benchmarks execute. The GitHub Actions
-workflow runs them under CodSpeed's simulation and memory instruments and uploads
-the measurements. The `parse` benchmark above retains the timing comparison with
-mailparse.
+Local runs check that the benchmarks execute; CI records and uploads the
+measurements. Use the `parse` benchmark above for timing comparisons with mailparse.
