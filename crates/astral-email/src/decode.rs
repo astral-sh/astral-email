@@ -138,17 +138,21 @@ fn parts(value: &str) -> impl Iterator<Item = Part<'_>> {
         ])
         .flat_map(|line| {
             let mut remaining = line.trim_start_matches(is_whitespace);
+            let mut pending = None;
             std::iter::from_fn(move || {
+                if let Some(word) = pending.take() {
+                    return Some(Part::Encoded(word));
+                }
                 if remaining.is_empty() {
                     return None;
                 }
                 if let Some(word) = next_word(remaining) {
+                    let plain = &remaining[..word.start];
+                    remaining = &remaining[word.end..];
                     if word.start == 0 {
-                        remaining = &remaining[word.end..];
                         Some(Part::Encoded(word))
                     } else {
-                        let plain = &remaining[..word.start];
-                        remaining = &remaining[word.start..];
+                        pending = Some(word);
                         Some(Part::Plain(plain))
                     }
                 } else {
