@@ -57,7 +57,10 @@ impl<'a> Header<'a> {
     /// Unfold and decode RFC 2047 words for display or metadata extraction.
     ///
     /// This is an explicit conversion; Python's `compat32` raw values retain
-    /// folding and encoded words. Ordinary UTF-8 values remain borrowed.
+    /// folding and encoded words. Unchanged ordinary UTF-8 values remain borrowed.
+    /// Invalid text becomes U+FFFD. See the [decoding policy] for supported charsets.
+    ///
+    /// [decoding policy]: https://github.com/viarius-experiments/astral-email/blob/main/docs/decoding.md
     ///
     /// # Errors
     ///
