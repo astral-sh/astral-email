@@ -20,11 +20,11 @@ Give the existing `release-environment-gate`, `astral-automations-bot`, and
 `astral-releases-bot` GitHub Apps access to this repository. Create an
 `automations` environment restricted to `main` and configure these secrets:
 
-| Environment   | Secret                 | Value                                                     |
-| ------------- | ---------------------- | --------------------------------------------------------- |
-| `automations` | `STS_API_URL`          | Astral's automation-broker base URL, without `/exchange`. |
-| `automations` | `OPENAI_API_KEY`       | An API key for the Codex changelog rewrite.               |
-| `release`     | `RELEASES_STS_API_URL` | Astral's release-broker base URL, without `/exchange`.    |
+| Environment   | Secret           | Value                                                     |
+| ------------- | ---------------- | --------------------------------------------------------- |
+| `automations` | `STS_API_URL`    | Astral's automation-broker base URL, without `/exchange`. |
+| `automations` | `OPENAI_API_KEY` | An API key for the Codex changelog rewrite.               |
+| `release`     | `STS_API_URL`    | Astral's release-broker base URL, without `/exchange`.    |
 
 The brokers read `.github/secure-token-service.json` and
 `.github/secure-token-service-release.json` from `main`, so merge these policies
