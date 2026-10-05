@@ -249,3 +249,22 @@ fn only_publishing_validates_description_utf8() {
         Err(MetadataError::DescriptionEncoding(_))
     ));
 }
+
+#[test]
+fn repeated_decoding_precedes_semantic_errors_and_short_circuiting() {
+    for fields in [
+        "Requires-Dist: @invalid\nRequires-Dist: =?utf-8?b?A?=\n",
+        "Dynamic: Version\nDynamic: =?utf-8?b?A?=\n",
+        "Dynamic: Requires-Python\nDynamic: =?utf-8?b?A?=\n",
+    ] {
+        let source = format!("{HEADERS}{fields}");
+        assert_eq!(
+            decode_error(ResolutionMetadata::parse_metadata(source.as_bytes())),
+            DecodeError::InvalidBase64,
+        );
+        assert_eq!(
+            decode_error(ResolutionMetadata::parse_pkg_info(source.as_bytes())),
+            DecodeError::InvalidBase64,
+        );
+    }
+}

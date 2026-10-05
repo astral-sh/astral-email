@@ -1,6 +1,6 @@
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -201,7 +201,7 @@
+@@ -201,7 +201,7 @@ jiff = { version = "0.2.0", default-features = false, features = [
  junction = { version = "2.0.0", default-features = false, features = ["unstable_admin"] }
  libc = { version = "0.2.0", default-features = false, features = ["std"] }
  linux-raw-sys = { version = "0.12.1", default-features = false, features = ["ioctl"] }
@@ -11,7 +11,7 @@
  nix = { version = "0.31.2", default-features = false, features = ["resource", "signal"] }
 --- a/crates/uv-pypi-types/Cargo.toml
 +++ b/crates/uv-pypi-types/Cargo.toml
-@@ -29,7 +29,7 @@
+@@ -29,7 +29,7 @@ hashbrown = { workspace = true }
  indexmap = { workspace = true, features = ["serde"] }
  itertools = { workspace = true }
  jiff = { workspace = true, features = ["serde"] }
@@ -22,7 +22,7 @@
  rkyv = { workspace = true }
 --- a/crates/uv-install-wheel/Cargo.toml
 +++ b/crates/uv-install-wheel/Cargo.toml
-@@ -35,7 +35,7 @@
+@@ -35,7 +35,7 @@ csv = { workspace = true }
  data-encoding = { workspace = true }
  fs-err = { workspace = true }
  itertools = { workspace = true }
@@ -33,8 +33,11 @@
  regex = { workspace = true }
 --- a/crates/uv-pypi-types/src/metadata/mod.rs
 +++ b/crates/uv-pypi-types/src/metadata/mod.rs
-@@ -7,7 +7,7 @@
+@@ -5,9 +5,10 @@ mod metadata_resolver;
+ mod pyproject_toml;
+ mod requires_dist;
  
++use std::borrow::Cow;
  use std::str::Utf8Error;
  
 -use mailparse::{MailHeaderMap, MailParseError};
@@ -42,7 +45,7 @@
  use thiserror::Error;
  
  use uv_normalize::InvalidNameError;
-@@ -29,7 +29,7 @@
+@@ -29,7 +30,7 @@ pub use requires_dist::RequiresDist;
  #[derive(Error, Debug)]
  pub enum MetadataError {
      #[error(transparent)]
@@ -51,7 +54,7 @@
      #[error("Invalid `pyproject.toml`")]
      InvalidPyprojectTomlSyntax(#[source] toml_edit::TomlError),
      #[error(transparent)]
-@@ -75,38 +75,33 @@
+@@ -75,38 +76,48 @@ impl From<Pep508Error<VerbatimParsedUrl>> for MetadataError {
  /// The headers of a distribution metadata file.
  #[derive(Debug)]
  struct Headers<'a> {
@@ -85,9 +88,14 @@
 -            }
 -        })
 +    fn get_first_value(&self, name: &str) -> Result<Option<String>, DecodeError> {
++        self.get_first_decoded(name)
++            .map(|value| value.map(Cow::into_owned))
++    }
++
++    fn get_first_decoded(&self, name: &str) -> Result<Option<Cow<'a, str>>, DecodeError> {
 +        self.message
 +            .first(name)
-+            .map(|header| header.decoded_value().map(|value| value.into_owned()))
++            .map(|header| header.decoded_value())
 +            .transpose()
 +            .map(|value| value.filter(|value| value != "UNKNOWN"))
      }
@@ -99,9 +107,19 @@
 -            .into_iter()
 -            .filter(|value| value != "UNKNOWN")
 +    fn get_all_values(&self, name: &str) -> Result<impl Iterator<Item = String>, DecodeError> {
-+        let values = self.message
++        self.get_all_decoded(name)
++            .map(|values| values.map(Cow::into_owned))
++    }
++
++    /// Decode every matching field before the caller parses or short-circuits it.
++    fn get_all_decoded(
++        &self,
++        name: &str,
++    ) -> Result<impl Iterator<Item = Cow<'a, str>>, DecodeError> {
++        let values = self
++            .message
 +            .all(name)
-+            .map(|header| header.decoded_value().map(|value| value.into_owned()))
++            .map(|header| header.decoded_value())
 +            .collect::<Result<Vec<_>, _>>()?;
 +        Ok(values.into_iter().filter(|value| value != "UNKNOWN"))
      }
@@ -109,7 +127,7 @@
  
 --- a/crates/uv-pypi-types/src/metadata/metadata10.rs
 +++ b/crates/uv-pypi-types/src/metadata/metadata10.rs
-@@ -19,14 +19,14 @@
+@@ -19,14 +19,14 @@ pub struct Metadata10 {
  impl Metadata10 {
      /// Parse the [`Metadata10`] from a `PKG-INFO` file, as included in a source distribution.
      pub fn parse_pkg_info(content: &[u8]) -> Result<Self, MetadataError> {
@@ -129,7 +147,7 @@
      }
 --- a/crates/uv-pypi-types/src/metadata/metadata23.rs
 +++ b/crates/uv-pypi-types/src/metadata/metadata23.rs
-@@ -118,55 +118,55 @@
+@@ -118,55 +118,55 @@ pub struct Metadata23 {
  impl Metadata23 {
      /// Parse distribution metadata from metadata `MetadataError`
      pub fn parse(content: &[u8]) -> Result<Self, MetadataError> {
@@ -152,11 +170,12 @@
 -        let supported_platforms = headers.get_all_values("Supported-Platform").collect();
 -        let summary = headers.get_first_value("Summary");
 -        let body = str::from_utf8(&content[headers.body_start..])
+-            .map_err(MetadataError::DescriptionEncoding)?;
 +        let platforms = headers.get_all_values("Platform")?.collect();
 +        let supported_platforms = headers.get_all_values("Supported-Platform")?.collect();
 +        let summary = headers.get_first_value("Summary")?;
-+        let body = str::from_utf8(headers.message.body())
-             .map_err(MetadataError::DescriptionEncoding)?;
++        let body =
++            str::from_utf8(headers.message.body()).map_err(MetadataError::DescriptionEncoding)?;
          let description = if body.trim().is_empty() {
 -            headers.get_first_value("Description")
 +            headers.get_first_value("Description")?
@@ -218,7 +237,7 @@
              name,
 --- a/crates/uv-pypi-types/src/metadata/metadata_resolver.rs
 +++ b/crates/uv-pypi-types/src/metadata/metadata_resolver.rs
-@@ -42,31 +42,31 @@
+@@ -42,31 +42,31 @@ pub struct ResolutionMetadata {
  impl ResolutionMetadata {
      /// Parse the [`ResolutionMetadata`] from a `METADATA` file, as included in a built distribution (wheel).
      pub fn parse_metadata(content: &[u8]) -> Result<Self, MetadataError> {
@@ -234,19 +253,19 @@
          let version = Version::from_str(
              &headers
 -                .get_first_value("Version")
-+                .get_first_value("Version")?
++                .get_first_decoded("Version")?
                  .ok_or(MetadataError::FieldNotFound("Version"))?,
          )
          .map_err(MetadataError::Pep440VersionError)?;
          let requires_dist = headers
 -            .get_all_values("Requires-Dist")
-+            .get_all_values("Requires-Dist")?
++            .get_all_decoded("Requires-Dist")?
              .map(|requires_dist| LenientRequirement::from_str(&requires_dist))
              .map_ok(Requirement::from)
              .collect::<Result<Box<_>, _>>()?;
          let requires_python = headers
 -            .get_first_value("Requires-Python")
-+            .get_first_value("Requires-Python")?
++            .get_first_decoded("Requires-Python")?
              .map(|requires_python| LenientVersionSpecifiers::from_str(&requires_python))
              .transpose()?
              .map(VersionSpecifiers::from);
@@ -256,16 +275,16 @@
              .filter_map(
                  |provides_extra| match ExtraName::from_owned(provides_extra) {
                      Ok(extra_name) => Some(extra_name),
-@@ -78,7 +78,7 @@
+@@ -78,7 +78,7 @@ impl ResolutionMetadata {
              )
              .collect::<Box<_>>();
          let dynamic = headers
 -            .get_all_values("Dynamic")
-+            .get_all_values("Dynamic")?
++            .get_all_decoded("Dynamic")?
              .any(|field| field == "Version");
  
          Ok(Self {
-@@ -95,12 +95,12 @@
+@@ -95,12 +95,12 @@ impl ResolutionMetadata {
      /// or later _and_ none of the required fields (`Requires-Python`, `Requires-Dist`, and
      /// `Provides-Extra`) are marked as dynamic.
      pub fn parse_pkg_info(content: &[u8]) -> Result<Self, MetadataError> {
@@ -280,16 +299,18 @@
              .ok_or(MetadataError::FieldNotFound("Metadata-Version"))?;
  
          // Parse the version into (major, minor).
-@@ -111,7 +111,7 @@
+@@ -111,8 +111,8 @@ impl ResolutionMetadata {
  
          // If any of the fields we need are marked as dynamic, we can't use the `PKG-INFO` file.
          let mut dynamic = false;
 -        for field in headers.get_all_values("Dynamic") {
-+        for field in headers.get_all_values("Dynamic")? {
-             match field.as_str() {
+-            match field.as_str() {
++        for field in headers.get_all_decoded("Dynamic")? {
++            match field.as_ref() {
                  "Requires-Python" => return Err(MetadataError::DynamicField("Requires-Python")),
                  "Requires-Dist" => return Err(MetadataError::DynamicField("Requires-Dist")),
-@@ -124,29 +124,29 @@
+                 "Provides-Extra" => return Err(MetadataError::DynamicField("Provides-Extra")),
+@@ -124,29 +124,29 @@ impl ResolutionMetadata {
          // The `Name` and `Version` fields are required, and can't be dynamic.
          let name = PackageName::from_owned(
              headers
@@ -300,7 +321,7 @@
          let version = Version::from_str(
              &headers
 -                .get_first_value("Version")
-+                .get_first_value("Version")?
++                .get_first_decoded("Version")?
                  .ok_or(MetadataError::FieldNotFound("Version"))?,
          )
          .map_err(MetadataError::Pep440VersionError)?;
@@ -308,13 +329,13 @@
          // The remaining fields are required to be present.
          let requires_dist = headers
 -            .get_all_values("Requires-Dist")
-+            .get_all_values("Requires-Dist")?
++            .get_all_decoded("Requires-Dist")?
              .map(|requires_dist| LenientRequirement::from_str(&requires_dist))
              .map_ok(Requirement::from)
              .collect::<Result<Box<_>, _>>()?;
          let requires_python = headers
 -            .get_first_value("Requires-Python")
-+            .get_first_value("Requires-Python")?
++            .get_first_decoded("Requires-Python")?
              .map(|requires_python| LenientVersionSpecifiers::from_str(&requires_python))
              .transpose()?
              .map(VersionSpecifiers::from);
@@ -326,7 +347,7 @@
                      Ok(extra_name) => Some(extra_name),
 --- a/crates/uv-install-wheel/src/wheel.rs
 +++ b/crates/uv-install-wheel/src/wheel.rs
-@@ -8,7 +8,7 @@
+@@ -8,7 +8,7 @@ use data_encoding::BASE64URL_NOPAD;
  use fs_err as fs;
  use fs_err::{DirEntry, File};
  use itertools::Itertools;
@@ -335,7 +356,7 @@
  use rustc_hash::FxHashMap;
  use sha2::{Digest, Sha256};
  use tracing::{debug, instrument, trace, warn};
-@@ -1083,15 +1083,12 @@
+@@ -1083,15 +1083,12 @@ fn parse_email_message_file(
      let file = BufReader::new(file);
      let content = file.bytes().collect::<Result<Vec<u8>, _>>()?;
  
