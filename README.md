@@ -6,6 +6,27 @@ The parser targets the header and body-boundary behavior of Python's `email.pars
 
 The application chooses the allocator. MIME body parsing, writing, and mutation are outside the library's scope.
 
+```rust
+use astral_email::Message;
+
+let message = Message::parse(b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n");
+assert_eq!(message.first("name").unwrap().raw_value(), b"example");
+
+for header in message.all("Requires-Dist") {
+    println!("{}", header.decoded_value().unwrap());
+}
+```
+
+Headers borrow the input and preserve duplicates, spelling, folding, and encoded
+words. Malformed headers recover as Python does, with defects available to the
+caller. Text decoding is explicit and fallible; the supported codecs and
+differences from Python's text conversion are documented separately.
+
+- [Conformance](docs/conformance.md) and [value decoding](docs/decoding.md)
+- [uv integration](docs/uv.md)
+- [Benchmarks](docs/performance.md)
+- [Fuzzing](docs/fuzzing.md)
+
 ## Development
 
 ```console

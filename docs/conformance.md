@@ -67,3 +67,16 @@ for the distinction between source parsing and value retrieval.
 
 The body is opaque. MIME trees, body transfer decoding, attachments, address and
 date grammars, writing, and mutation are outside this parser's scope.
+
+## Resource behavior
+
+The library forbids unsafe Rust. Parsing walks the header bytes without recursion;
+header storage grows with the number of fields and defects. Ordinary bodies are
+borrowed without scanning their contents. Lookups scan the ordered header list,
+and decoding allocates only when conversion is needed. There are no built-in
+size or field-count limits; applications should bound input reads according to
+their own resource budget. Allocation failure follows Rust's allocator behavior.
+
+The [fuzz targets](fuzzing.md) check arbitrary input and compare recovery with a
+live Python parser. This complements the fixed corpus and uv tests; it does not
+prove that all inputs are correct.

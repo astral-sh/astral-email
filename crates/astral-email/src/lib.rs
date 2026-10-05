@@ -2,6 +2,15 @@
 //!
 //! Header structure and recovery follow Python's `BytesHeaderParser` with the
 //! `compat32` policy. Values retain folding and encoded words; the body is opaque.
+//!
+//! ```
+//! use astral_email::Message;
+//!
+//! let message = Message::parse(b"Name: example\nRequires-Dist: requests>=2\n\nDescription\n");
+//! assert_eq!(message.first("name").unwrap().raw_value(), b"example");
+//! assert_eq!(message.all("Requires-Dist").count(), 1);
+//! assert_eq!(message.body(), b"Description\n");
+//! ```
 
 use std::borrow::Cow;
 
