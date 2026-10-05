@@ -249,3 +249,44 @@ fn only_publishing_validates_description_utf8() {
         Err(MetadataError::DescriptionEncoding(_))
     ));
 }
+
+#[test]
+fn publication_index_preserves_order_and_ignores_unknown_fields() {
+    let source = format!(
+        "{HEADERS}\
+         cLaSsIfIeR: first\n\
+         X-Unknown: =?utf-8?b?A?=\n\
+         Requires-Dist: idna\n\
+         CLASSIFIER: UNKNOWN\n\
+         Requires-Dist: requests\n\
+         Classifier: third\n"
+    );
+    let metadata = Metadata23::parse(source.as_bytes()).unwrap();
+    assert_eq!(metadata.classifiers, ["first", "third"]);
+    assert_eq!(metadata.requires_dist, ["idna", "requests"]);
+
+    let source = format!("{HEADERS}Requires-Dist: =?utf-8?b?A?=\nSummary: =?x-unknown?q?text?=\n");
+    assert_eq!(
+        decode_error(Metadata23::parse(source.as_bytes())),
+        DecodeError::UnsupportedCharset("x-unknown".to_owned()),
+    );
+}
+
+#[test]
+fn repeated_decoding_precedes_semantic_errors_and_short_circuiting() {
+    for fields in [
+        "Requires-Dist: @invalid\nRequires-Dist: =?utf-8?b?A?=\n",
+        "Dynamic: Version\nDynamic: =?utf-8?b?A?=\n",
+        "Dynamic: Requires-Python\nDynamic: =?utf-8?b?A?=\n",
+    ] {
+        let source = format!("{HEADERS}{fields}");
+        assert_eq!(
+            decode_error(ResolutionMetadata::parse_metadata(source.as_bytes())),
+            DecodeError::InvalidBase64,
+        );
+        assert_eq!(
+            decode_error(ResolutionMetadata::parse_pkg_info(source.as_bytes())),
+            DecodeError::InvalidBase64,
+        );
+    }
+}
