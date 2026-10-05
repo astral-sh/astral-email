@@ -1,69 +1,28 @@
-# Performance
+# Benchmarks
 
-The [81 uv workloads](uv.md#fixtures-and-benchmarks) run faster than mailparse
-0.16.1 in both repetitions with both allocators. These measurements include
-parsing, equivalent owned field extraction, and output destruction.
-
-| Allocator | Geometric mean speedup, run 1 | Run 2 | Smallest speedup across both runs |
-| --- | ---: | ---: | ---: |
-| System | 2.36× | 2.37× | 1.66× |
-| jemalloc | 2.24× | 2.21× | 1.62× |
-
-The [per-workload results](../benchmarks/results.csv) retain medians, p10/p90,
-and allocation counts. [Environment and source hashes](../benchmarks/environment.json)
-identify the measured implementation. Ratios above are mailparse time divided by
-astral-mail-headers time; the geometric mean weights each workload equally.
-
-Measurements were taken on 2026-10-04 (America/New_York) on a Linux x86-64 AMD EPYC Milan virtual
-machine, pinned to CPU 26. Both parsers used the same release binary and allocator,
-with thin LTO and one codegen unit. The compiler was Rust 1.98.1-dev, commit
-`f6270311094cd4b48fefce03debdffcf8396c64c`, LLVM 22.1.8, with experimental build
-defaults disabled and no additional compiler flags. The binaries were rebuilt
-from the recorded source hashes before timing. No local builds or fuzzing ran
-during measurement.
-
-Each workload warmed up for 15 ms, then took 31 samples of approximately 5 ms per
-parser, alternating parser order. The four runs used system, jemalloc, jemalloc,
-then system, to check repeatability in reverse allocator order. These results
-describe this corpus and machine; they do not measure whole uv commands or
-establish performance on ARM64. ARM64 correctness is checked in CI.
-
-## Reproduce
-
-Run on an otherwise idle machine, choosing an available CPU:
+The `parse` benchmark compares parsing and owned field extraction against mailparse
+using [uv fixtures](uv.md#fixtures) and synthetic inputs. It checks that both
+parsers produce the same output before timing. Fixture loading is excluded;
+output destruction is included.
 
 ```console
-taskset -c 26 cargo bench --locked --bench parse -- --samples 31 --sample-ms 5 --warmup-ms 15
-taskset -c 26 cargo bench --locked --bench parse --features benchmark-jemalloc -- --samples 31 --sample-ms 5 --warmup-ms 15
+cargo bench --locked --bench parse
+cargo bench --locked --bench parse --features benchmark-jemalloc
 ```
 
-Repeat in reverse order. Fixture loading and output comparisons happen before
-timing. The benchmark prints CSV; `--test` checks the outputs without timing.
-
-## Allocations
+The benchmark prints CSV with median and p10/p90 timings. Use `-- --filter NAME`
+to select workloads or `-- --test` to check outputs without timing. For allocation
+counts and requested bytes with the system allocator, run:
 
 ```console
 cargo run --release --locked --example allocations
 ```
 
-This runs the same extraction through `stats_alloc` around the system allocator,
-with fixture loading outside the measured region. Every workload makes fewer
-allocation or reallocation calls: reductions range from 33% to 75%. Requested
-allocation bytes fall by 17% to 86%. These are allocator requests, not peak RSS;
-reallocation growth is included in `bytes_allocated` and reported separately in
-`bytes_reallocated`.
-
-The example also checks that parsing an ordinary opaque 16 MiB body allocates
-exactly as much as parsing identical headers with an empty body. Python's unusual
-trailing-envelope recovery can require copying the body, as described in the
-[conformance contract](conformance.md#raw-parsing).
-
 ## CodSpeed
 
 CodSpeed tracks instructions and allocations for parsing, metadata extraction,
-and header decoding. Extraction outputs are checked against mailparse before
-measurement. Fixture setup and, for decoding benchmarks, message parsing are
-excluded; output destruction is included.
+and header decoding. Fixture setup and, for decoding benchmarks, message parsing
+are excluded; output destruction is included.
 
 ```console
 cargo install cargo-codspeed --version 5.0.1 --locked
@@ -71,5 +30,5 @@ cargo codspeed build -m simulation -m memory --profile profiling -p astral-mail-
 cargo codspeed run --bench codspeed
 ```
 
-Local runs check that the benchmarks execute; CI records and uploads the
-measurements. Use the `parse` benchmark above for timing comparisons with mailparse.
+Local runs check that the benchmarks execute. [CI](../.github/workflows/benchmarks.yml)
+records and uploads measurements.
