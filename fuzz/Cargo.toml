@@ -42,3 +42,10 @@ path = "fuzz_targets/python.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "python_decode"
+path = "fuzz_targets/python_decode.rs"
+test = false
+doc = false
+bench = false

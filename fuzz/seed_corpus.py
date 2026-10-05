@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGETS = ("reader", "decode", "lookup", "python")
+TARGETS = ("reader", "decode", "lookup", "python", "python_decode")
 MAX_BYTES = 16_384
 
 
@@ -41,6 +41,19 @@ def seed_inputs():
         value = case["value"].encode()
         add(value)
         add(b"X: " + value + b"\n\n")
+
+    for value in [
+        b"=?utf-8?q?hello?=\vworld",
+        b"=?utf-8?q?hello\fworld?=",
+        b"=?utf-8?q?=C3?=\x1c=?UTF-8?b?qQ==?=",
+        b"=?utf-8?q?=C3?= =?latin-1?q?=A9?=",
+        b"=?utf--8?q?text?=",
+        b"=?windows.1252?q?=80?=",
+        b"=?utf\x00-8?q?text?=",
+        b"=?unknown?q?text?= =?utf-8?b?Y?=",
+        b"prefix =?utf-8?x?literal?= =?utf-8?q?unfinished",
+    ]:
+        add(value)
 
     cases = json.loads(read(fixtures / "uv/manifest.json"))["cases"]
     report["uv_inputs"] = len(cases)

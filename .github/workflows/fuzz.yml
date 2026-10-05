@@ -7,6 +7,7 @@ on:
       - 'Cargo.lock'
       - 'crates/**'
       - 'scripts/generate_conformance.py'
+      - 'scripts/generate_decode_fixtures.py'
       - 'fuzz/**'
       - '.github/workflows/fuzz.yml'
   push:
@@ -30,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [reader, decode, lookup, python]
+        target: [reader, decode, lookup, python, python_decode]
     env:
       RUSTUP_TOOLCHAIN: nightly-2026-09-07
       FUZZ_TARGET: ${{ matrix.target }}
@@ -67,7 +68,7 @@ jobs:
             cargo fuzz --version
             uname -a
             printf 'target=%s\nseconds=%s\nseed=%s\n' "$FUZZ_TARGET" "$FUZZ_SECONDS" "$FUZZ_SEED"
-            sha256sum fuzz/Cargo.lock fuzz/email.dict fuzz/fuzz_targets/*.rs scripts/generate_conformance.py fuzz/python_oracle.py
+            sha256sum fuzz/Cargo.lock fuzz/email.dict fuzz/fuzz_targets/*.rs fuzz/fuzz_targets/support/*.rs scripts/generate_conformance.py scripts/generate_decode_fixtures.py fuzz/python_oracle.py
             find "fuzz/generated/$FUZZ_TARGET" -type f -exec sha256sum '{}' + | sort
           } > "fuzz/logs/$FUZZ_TARGET-inputs.txt"
       - name: Fuzz with AddressSanitizer
