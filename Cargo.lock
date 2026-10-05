@@ -39,7 +39,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "astral-email"
+name = "astral-mail-headers"
 version = "0.0.1"
 dependencies = [
  "base64",

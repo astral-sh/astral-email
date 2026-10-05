@@ -8,14 +8,14 @@ mod support;
 
 use std::hint::black_box;
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 
 fn extract(c: &mut Criterion) {
     let mut group = c.benchmark_group("parse-and-extract");
     for case in support::cases() {
         assert_eq!(
-            support::astral_email(&case.input, case.kind),
+            support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
             "{}",
             case.name,
@@ -23,7 +23,10 @@ fn extract(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(case.input.len() as u64));
         group.bench_function(&case.name, |b| {
             b.iter(|| {
-                black_box(support::astral_email(black_box(&case.input), case.kind));
+                black_box(support::astral_mail_headers(
+                    black_box(&case.input),
+                    case.kind,
+                ));
             });
         });
     }

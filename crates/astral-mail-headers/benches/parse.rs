@@ -92,7 +92,7 @@ fn main() {
     assert!(!cases.is_empty(), "no cases matched the filter");
     for case in &cases {
         assert_eq!(
-            support::astral_email(&case.input, case.kind),
+            support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
             "{}",
             case.name,
@@ -120,10 +120,10 @@ fn main() {
         options.warmup.as_millis(),
     );
     println!(
-        "case,bytes,astral_email_ns,mailparse_ns,speedup,astral_email_p10_ns,astral_email_p90_ns,mailparse_p10_ns,mailparse_p90_ns"
+        "case,bytes,astral_mail_headers_ns,mailparse_ns,speedup,astral_mail_headers_p10_ns,astral_mail_headers_p90_ns,mailparse_p10_ns,mailparse_p90_ns"
     );
     for case in cases {
-        let astral = || support::astral_email(black_box(&case.input), case.kind);
+        let astral = || support::astral_mail_headers(black_box(&case.input), case.kind);
         let baseline = || support::mailparse(black_box(&case.input), case.kind);
         let start = Instant::now();
         while start.elapsed() < options.warmup {

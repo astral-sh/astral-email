@@ -1,5 +1,5 @@
 [package]
-name = "astral-email-fuzz"
+name = "astral-mail-headers-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
@@ -11,7 +11,7 @@ cargo-fuzz = true
 members = ["."]
 
 [dependencies]
-astral-email = { path = "../crates/astral-email" }
+astral-mail-headers = { path = "../crates/astral-mail-headers" }
 libfuzzer-sys = "0.4"
 serde_json = { version = "1.0", default-features = false, features = ["std"] }
 

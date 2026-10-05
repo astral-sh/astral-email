@@ -12,7 +12,7 @@ parsing, equivalent owned field extraction, and output destruction.
 The [per-workload results](../benchmarks/results.csv) retain medians, p10/p90,
 and allocation counts. [Environment and source hashes](../benchmarks/environment.json)
 identify the measured implementation. Ratios above are mailparse time divided by
-astral-email time; the geometric mean weights each workload equally.
+astral-mail-headers time; the geometric mean weights each workload equally.
 
 Measurements were taken on 2026-10-04 (America/New_York) on a Linux x86-64 AMD EPYC Milan virtual
 machine, pinned to CPU 26. Both parsers used the same release binary and allocator,
@@ -69,7 +69,7 @@ decoding benchmarks parse each message before measuring individual header values
 
 ```console
 cargo install cargo-codspeed --version 5.0.1 --locked
-cargo codspeed build -m simulation -m memory --profile profiling -p astral-email --bench codspeed --locked
+cargo codspeed build -m simulation -m memory --profile profiling -p astral-mail-headers --bench codspeed --locked
 cargo codspeed run --bench codspeed
 ```
 

@@ -8,7 +8,7 @@ version = "0.0.1"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/viarius-experiments/astral-email"
+repository = "https://github.com/astral-sh/astral-mail-headers"
 
 [workspace.dependencies]
 criterion = { package = "codspeed-criterion-compat", version = "=5.0.1", default-features = false, features = ["cargo_bench_support"] }

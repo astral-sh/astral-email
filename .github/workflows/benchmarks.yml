@@ -16,7 +16,7 @@ concurrency:
 jobs:
   codspeed:
     name: CodSpeed
-    if: github.repository == 'astral-sh/astral-email'
+    if: github.repository == 'astral-sh/astral-mail-headers'
     runs-on: github-ubuntu-24.04-x86_64-4
     timeout-minutes: 30
     permissions:
@@ -35,7 +35,7 @@ jobs:
       - name: Install cargo-codspeed
         run: cargo install cargo-codspeed --version 5.0.1 --locked
       - name: Build benchmarks
-        run: cargo codspeed build -m simulation -m memory --profile profiling -p astral-email --bench codspeed --locked
+        run: cargo codspeed build -m simulation -m memory --profile profiling -p astral-mail-headers --bench codspeed --locked
       - name: Run benchmarks
         uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         with:

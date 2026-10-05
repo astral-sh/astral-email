@@ -3,7 +3,7 @@
 #[path = "support/decode_input.rs"]
 mod decode_input;
 
-use astral_email::Message;
+use astral_mail_headers::Message;
 
 #[test]
 fn wraps_values_without_splitting_line_endings() {

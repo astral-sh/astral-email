@@ -47,10 +47,10 @@ Run with CPython 3.12.13 on a little-endian host:
 
 ```console
 python scripts/generate_decode_fixtures.py --check
-cargo test -p astral-email --lib decode::tests
+cargo test -p astral-mail-headers --lib decode::tests
 ```
 
-Omit `--check` to regenerate the 60 [codec fixtures](../crates/astral-email/tests/fixtures/decode.json).
+Omit `--check` to regenerate the 60 [codec fixtures](../crates/astral-mail-headers/tests/fixtures/decode.json).
 They encode all 256 byte values for each supported single-byte codec and selected
 malformed UTF-8/UTF-16, BOM sequences, and charset-label variants. Expected strings
 come from `email.header.decode_header`, then `bytes.decode(charset, errors="replace")`.
@@ -68,6 +68,6 @@ The driver compares separator cases and 5,000 seeded short values, including
 malformed Q/B payloads and adjacent words split across multibyte characters:
 
 ```console
-cargo build -p astral-email --example decode_inspect --locked
+cargo build -p astral-mail-headers --example decode_inspect --locked
 python scripts/check_decode.py target/debug/examples/decode_inspect
 ```
