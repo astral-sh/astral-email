@@ -10,7 +10,7 @@ ordering, tone, and Markdown style. Inspect the included local changes when a
 generated title is not enough to classify or describe an entry accurately.
 
 In any GitHub-facing output, write issue and pull request references in the
-canonical owner/repository#number form, such as astral-sh/astral-email#123. This
+canonical owner/repository#number form, such as astral-sh/astral-mail-headers#123. This
 preserves cross-repository closing keywords and lets GitHub render the
 references as links. Do not use bare numbers, repository-name shorthand,
 Markdown link syntax, or backticks around references. Preserve the established

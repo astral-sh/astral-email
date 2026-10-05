@@ -26,7 +26,7 @@ permissions: {}
 jobs:
   validate-release:
     name: Validate release
-    if: github.repository == 'astral-sh/astral-email' && github.ref_name == github.event.repository.default_branch
+    if: github.repository == 'astral-sh/astral-mail-headers' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -41,7 +41,7 @@ jobs:
         run: |
           package_version="$(
             cargo metadata --locked --no-deps --format-version 1 |
-              jq -r '.packages[] | select(.name == "astral-email") | .version'
+              jq -r '.packages[] | select(.name == "astral-mail-headers") | .version'
           )"
           if [[ "$package_version" != "$VERSION" ]]; then
             echo "::error::Requested version ${VERSION} does not match Cargo.toml version ${package_version}"
@@ -58,7 +58,7 @@ jobs:
           VERSION: ${{ inputs.version }}
 
       - name: Verify release package
-        run: cargo publish -p astral-email --dry-run --locked
+        run: cargo publish -p astral-mail-headers --dry-run --locked
 
       - name: Verify release notes
         run: |
@@ -109,19 +109,19 @@ jobs:
               --show-error \
               --output /dev/null \
               --write-out '%{http_code}' \
-              --user-agent 'astral-email-crates-io-publish (github.com/astral-sh/astral-email)' \
-              "https://crates.io/api/v1/crates/astral-email/${VERSION}"
+              --user-agent 'astral-mail-headers-crates-io-publish (github.com/astral-sh/astral-mail-headers)' \
+              "https://crates.io/api/v1/crates/astral-mail-headers/${VERSION}"
           )"
           case "$status" in
             200)
               echo "published=true" >> "$GITHUB_OUTPUT"
-              echo "astral-email ${VERSION} is already published; skipping upload." >> "$GITHUB_STEP_SUMMARY"
+              echo "astral-mail-headers ${VERSION} is already published; skipping upload." >> "$GITHUB_STEP_SUMMARY"
               ;;
             404)
               echo "published=false" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              echo "::error::crates.io returned HTTP ${status} while checking astral-email ${VERSION}"
+              echo "::error::crates.io returned HTTP ${status} while checking astral-mail-headers ${VERSION}"
               exit 1
               ;;
           esac
@@ -134,7 +134,7 @@ jobs:
 
       - name: Publish to crates.io
         if: steps.published.outputs.published != 'true'
-        run: cargo publish -p astral-email --locked
+        run: cargo publish -p astral-mail-headers --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
@@ -158,7 +158,7 @@ jobs:
         with:
           exchange-url: ${{ secrets.RELEASES_STS_API_URL }}/exchange
           audience: ${{ secrets.RELEASES_STS_API_URL }}
-          repository: astral-sh/astral-email
+          repository: astral-sh/astral-mail-headers
           # Tag the selected commit even if main advances across workflow changes.
           permissions: |
             contents: write
@@ -183,7 +183,7 @@ jobs:
           gh release create "v${VERSION}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_COMMIT" \
-            --title "astral-email v${VERSION}" \
+            --title "astral-mail-headers v${VERSION}" \
             --notes-file "$RUNNER_TEMP/notes.txt" \
             "${prerelease[@]}"
         env:

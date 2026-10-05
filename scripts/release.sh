@@ -25,8 +25,8 @@ fi
 version="$(python3 scripts/update-release-version.py)"
 
 echo "Updating lockfiles..."
-cargo update -p astral-email
-cargo update --manifest-path fuzz/Cargo.toml -p astral-email
+cargo update -p astral-mail-headers
+cargo update --manifest-path fuzz/Cargo.toml -p astral-mail-headers
 
 echo "Creating release branch..."
 git checkout -b "release/$version"

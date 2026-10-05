@@ -2,7 +2,7 @@
 
 use std::io::{self, BufRead, Write};
 
-use astral_email::{DecodeError, Message};
+use astral_mail_headers::{DecodeError, Message};
 use serde_json::json;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

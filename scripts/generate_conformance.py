@@ -13,7 +13,7 @@ import sys
 PYTHON_VERSION = "3.12.13"
 FIXTURES = (
     Path(__file__).resolve().parents[1]
-    / "crates/astral-email/tests/fixtures/python.json"
+    / "crates/astral-mail-headers/tests/fixtures/python.json"
 )
 
 

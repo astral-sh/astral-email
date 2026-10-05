@@ -9,7 +9,7 @@ Releases can only be performed by Astral team members.
 Before the first release, configure the protected `release-gate` and `release`
 environments and release tag rules through
 [Astral's GitHub policies](https://github.com/astral-sh/github-policies).
-Register `astral-email` in
+Register `astral-mail-headers` in
 [crates-policies](https://github.com/astral-sh/crates-policies) and run its
 **Apply** workflow to bootstrap the crate and configure Trusted Publishing for
 this repository's `release.yml` workflow and `release` environment. Crates.io

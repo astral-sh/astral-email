@@ -1,4 +1,4 @@
-# Bump the astral-email version and create a pull request.
+# Bump the astral-mail-headers version and create a pull request.
 name: "Prepare release"
 
 on:
@@ -20,7 +20,7 @@ env:
 
 jobs:
   prepare-release:
-    if: github.repository == 'astral-sh/astral-email' && github.ref_name == github.event.repository.default_branch
+    if: github.repository == 'astral-sh/astral-mail-headers' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     environment: automations
     permissions:
@@ -43,13 +43,13 @@ jobs:
         with:
           save-if: false
 
-      - name: "Get astral-email token"
+      - name: "Get astral-mail-headers token"
         id: token
         uses: open-security-tools/ost-simple-sts@9e012247e07c39080fb6a832dbfbcfeacebc19c4
         with:
           exchange-url: ${{ secrets.STS_API_URL }}/exchange
           audience: ${{ secrets.STS_API_URL }}
-          repository: astral-sh/astral-email
+          repository: astral-sh/astral-mail-headers
           permissions: |
             contents: write
             pull_requests: write

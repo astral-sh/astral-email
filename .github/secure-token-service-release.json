@@ -1,8 +1,8 @@
 {
   "version": 2,
   "repositories": {
-    "astral-email": {
-      "name": "astral-sh/astral-email",
+    "astral-mail-headers": {
+      "name": "astral-sh/astral-mail-headers",
       "id": 1404952874,
       "oidc_subject": "immutable",
       "owner_id": 115962839
@@ -10,7 +10,7 @@
   },
   "rules": [
     {
-      "caller": "astral-email",
+      "caller": "astral-mail-headers",
       "environment": "release",
       "caller_ref": "refs/heads/main",
       "caller_workflow": "release.yml",
@@ -19,7 +19,7 @@
         "contents": "write",
         "workflows": "write"
       },
-      "target": "astral-email"
+      "target": "astral-mail-headers"
     }
   ]
 }

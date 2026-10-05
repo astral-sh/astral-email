@@ -2,10 +2,10 @@
 
 use std::borrow::Cow;
 
-#[path = "../../crates/astral-email/tests/support/decode_input.rs"]
+#[path = "../../crates/astral-mail-headers/tests/support/decode_input.rs"]
 mod decode_input;
 
-use astral_email::{Header, Message};
+use astral_mail_headers::{Header, Message};
 use libfuzzer_sys::fuzz_target;
 
 fn check_value(header: &Header<'_>) {
