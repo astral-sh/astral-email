@@ -93,7 +93,6 @@ impl<'a> Message<'a> {
         let mut pending: Option<(&str, usize, usize)> = None;
         let mut envelope: Option<(usize, usize)> = None;
         let mut position = 0;
-        let mut line_number = 0;
 
         while position < source.len() {
             let start = position;
@@ -141,7 +140,7 @@ impl<'a> Message<'a> {
                     headers.push(header(name, &source[value_start..value_end]));
                 }
                 if is_envelope {
-                    if line_number == 0 {
+                    if start == 0 {
                         unix_from = Some(line);
                     } else {
                         envelope = Some((start, end));
@@ -156,7 +155,6 @@ impl<'a> Message<'a> {
                     }
                 }
             }
-            line_number += 1;
         }
         if let Some((name, value_start, value_end)) = pending {
             headers.push(header(name, &source[value_start..value_end]));
