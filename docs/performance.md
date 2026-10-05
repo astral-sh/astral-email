@@ -57,3 +57,26 @@ The example also checks that parsing an ordinary opaque 16 MiB body allocates
 exactly as much as parsing identical headers with an empty body. Python's unusual
 trailing-envelope recovery can require copying the body, as described in the
 [conformance contract](conformance.md#raw-parsing).
+
+## uv semantic parsing
+
+`scripts/benchmark_uv.py` runs the pinned uv metadata parsers through their public
+APIs. It includes dependency and version parsing, final owned metadata, and drop.
+The fixtures include resolution, publication, WHEEL, and supported PKG-INFO paths;
+errors on old PKG-INFO formats are included in the output comparison.
+
+Build each adapter revision in its own checkout and target directory, retaining
+its executable with `--binary`. Use `--allocator system` and `--allocator jemalloc`
+for each revision, then alternate the saved executables on an idle, pinned CPU.
+Builds and fixture loading are outside timing. `--filter` selects workload names;
+`--json` switches the default CSV output to JSON.
+
+```console
+python3 scripts/benchmark_uv.py --build-only --binary /tmp/uv-email-candidate
+/tmp/uv-email-candidate --fixtures crates/astral-email/tests/fixtures/uv --snapshot /tmp/candidate.json
+/tmp/uv-email-candidate --fixtures crates/astral-email/tests/fixtures/uv --check /tmp/baseline.json
+```
+
+Capture `--snapshot` from the parent adapter first. `--check` compares all semantic
+outputs before timing, including error variants. Keep the owned-extraction
+benchmark above unchanged when evaluating borrowing in the uv adapter.
