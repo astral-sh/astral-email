@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare 5,000 bounded Q/B cases with the compiled decode_inspect example."""
+"""Compare bounded Q/B and separator cases with the compiled decode_inspect example."""
 
 import argparse
 import base64
@@ -20,6 +20,15 @@ def word(charset: str, data: bytes, encoding: str) -> str:
 
 
 def values():
+    for separator in ["\v", "\f", "\x1c", "\x1d", "\x1e"]:
+        yield f"before{separator} after"
+        yield f"=?utf-8?q?hello?={separator}"
+        yield f"=?utf-8?q?hello?={separator}  world"
+        yield f"prefix{separator}=?utf-8?q?hello?="
+        yield f"before{separator} after =?utf-8?q?end?="
+        yield f"=?utf-8?q?=C3?={separator}=?utf-8?q?=A9?="
+        yield f"=?utf-8?q?hello{separator}world?="
+        yield f"=?utf{separator}-8?q?hello?="
     randomizer = random.Random(0)
     charsets = [
         "utf-8", "utf-8-sig", "ascii", "iso-8859-1", "windows-1252",
