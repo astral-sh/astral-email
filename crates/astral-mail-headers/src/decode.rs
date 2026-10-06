@@ -37,11 +37,14 @@ impl std::error::Error for DecodeError {}
 #[inline]
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     let text = decode_utf8(raw);
-    if !memchr::memchr2_iter(b'\n', b'=', text.as_bytes()).any(|offset| {
-        matches!(
-            &text.as_bytes()[offset..],
-            [b'=', b'?', ..] | [b'\n', b' ' | b'\t', ..]
-        )
+    let bytes = text.as_bytes();
+    // Scanning for '?' skips the '=' common in version constraints.
+    if !memchr::memchr2_iter(b'\n', b'?', bytes).any(|offset| {
+        if bytes[offset] == b'?' {
+            offset > 0 && bytes[offset - 1] == b'='
+        } else {
+            matches!(bytes.get(offset + 1), Some(b' ' | b'\t'))
+        }
     }) {
         return Ok(text);
     }
@@ -425,6 +428,8 @@ mod tests {
         for value in [
             "",
             "plain value",
+            "?plain?value=1",
+            "package>=1,!=2",
             "  café\t ",
             "=?utf-8?x?literal?=",
             "=?utf-8?q?unfinished",
@@ -500,6 +505,7 @@ mod tests {
         for (value, expected) in [
             ("=?utf-8?q?hello_world?=", "hello world"),
             ("x=?utf-8?q?y?=z", "xyz"),
+            ("?? =?utf-8?q?ok?=", "?? ok"),
             (" =?utf-8?q?a?=  =?UTF-8?q?b?= ", "ab "),
             ("=?utf-8?q?=C3?= =?utf-8?q?=A9?=", "é"),
             ("=?utf-8?q?=C3=A9?= =?iso-8859-1?q?=E9?=", "éé"),
