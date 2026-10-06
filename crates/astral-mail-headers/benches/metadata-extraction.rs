@@ -1,4 +1,4 @@
-//! Parse and extract owned packaging fields with both parsers.
+//! Extract owned package metadata with both parsers.
 
 #[allow(dead_code)]
 #[path = "../tests/support/mod.rs"]
@@ -103,7 +103,7 @@ fn main() {
         return;
     }
 
-    println!("# Parse and extract owned packaging fields; drop included");
+    println!("# Owned metadata extraction");
     println!(
         "# allocator={} samples={} sample_ms={} warmup_ms={}",
         if cfg!(all(

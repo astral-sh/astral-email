@@ -67,7 +67,7 @@ fn load_fixtures(manifest: &str, directory: &str) -> Vec<(Fixture, Vec<u8>)> {
         .collect()
 }
 
-/// Resolution, publication, and WHEEL workloads from real package releases only.
+/// Dependency, publication, and WHEEL metadata extraction from real packages.
 pub(crate) fn benchmark_cases() -> Vec<Case> {
     extraction_cases(benchmark_fixtures())
 }
@@ -81,9 +81,9 @@ fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
         };
         for &kind in kinds {
             let suffix = match kind {
-                Kind::Resolution => "resolution",
-                Kind::Publish => "publish",
-                Kind::Wheel => "wheel",
+                Kind::Resolution => "dependency-metadata-extraction",
+                Kind::Publish => "publication-metadata-extraction",
+                Kind::Wheel => "wheel-metadata-extraction",
             };
             cases.push(Case {
                 name: format!("{}-{suffix}", fixture.name),

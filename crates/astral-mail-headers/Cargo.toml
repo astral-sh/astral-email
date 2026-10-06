@@ -32,7 +32,7 @@ tikv-jemallocator = { version = "0.6.0", default-features = false, features = ["
 workspace = true
 
 [[bench]]
-name = "parse"
+name = "metadata-extraction"
 harness = false
 
 [[bench]]
