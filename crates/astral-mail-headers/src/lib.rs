@@ -98,7 +98,7 @@ impl<'a> Message<'a> {
     /// borrowed, except when Python's recovery moves a trailing envelope line
     /// into the body across an empty separator.
     pub fn parse(source: &'a [u8]) -> Self {
-        let mut headers = Vec::new();
+        let mut headers = Vec::with_capacity(8);
         let mut defects = Vec::new();
         let mut unix_from = None;
         let mut pending: Option<(&[u8], usize, usize)> = None;
