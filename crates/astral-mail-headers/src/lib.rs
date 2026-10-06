@@ -142,7 +142,7 @@ impl<'a> Message<'a> {
 
             if continuation {
                 if let Some((_, _, value_end)) = &mut pending {
-                    *value_end = end;
+                    *value_end = content_end;
                 } else {
                     defects.push(Defect::FirstHeaderLineIsContinuation);
                 }
@@ -161,7 +161,7 @@ impl<'a> Message<'a> {
                         defects.push(Defect::InvalidHeader);
                     } else {
                         let name = &line[..colon];
-                        pending = Some((name, start + colon + 1, end));
+                        pending = Some((name, start + colon + 1, content_end));
                     }
                 }
             }
@@ -224,13 +224,10 @@ impl<'a> Message<'a> {
     }
 }
 
-/// Apply `compat32.header_source_parse` trimming to a contiguous field value.
+/// Trim the start of a field whose final line ending has already been excluded.
 fn header<'a>(name: &'a [u8], mut value: &'a [u8]) -> Header<'a> {
     while matches!(value.first(), Some(b' ' | b'\t' | b'\r' | b'\n')) {
         value = &value[1..];
-    }
-    while matches!(value.last(), Some(b'\r' | b'\n')) {
-        value = &value[..value.len() - 1];
     }
     Header { name, value }
 }
