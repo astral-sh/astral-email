@@ -424,9 +424,11 @@ fn decode_utf16(bytes: &[u8], big_endian: bool) -> String {
         && units
             .last()
             .is_some_and(|pair| (0xd800..=0xdbff).contains(&unit(pair)));
-    let mut decoded: String = char::decode_utf16(units.iter().map(unit))
-        .map(|character| character.unwrap_or(char::REPLACEMENT_CHARACTER))
-        .collect();
+    let mut decoded = String::with_capacity(bytes.len());
+    decoded.extend(
+        char::decode_utf16(units.iter().map(unit))
+            .map(|character| character.unwrap_or(char::REPLACEMENT_CHARACTER)),
+    );
     if trailing_byte && !truncated_pair {
         decoded.push(char::REPLACEMENT_CHARACTER);
     }
