@@ -193,6 +193,9 @@ fn unfold(value: &str) -> Cow<'_, str> {
         output.push_str(&value[copied..end]);
         output.push(' ');
         let mut cursor = newline + 1;
+        while bytes[cursor..].starts_with(b"        ") {
+            cursor += 8;
+        }
         while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
             cursor += 1;
         }
@@ -482,6 +485,13 @@ mod tests {
         assert_eq!(decode(b"one\r\n \t two\n\tthree").unwrap(), "one two three");
         assert_eq!(decode(b"one\n\ttwo  ").unwrap(), "one two  ");
         assert_eq!(decode(b"one\r two").unwrap(), "one\r two");
+        for length in [7, 8, 9, 16] {
+            let spaces = " ".repeat(length);
+            let value = format!("one\n{spaces}two\r\n{spaces}\tthree");
+            assert_eq!(decode(value.as_bytes()).unwrap(), "one two three");
+            let value = format!("one\n{spaces}");
+            assert_eq!(decode(value.as_bytes()).unwrap(), "one ");
+        }
     }
 
     #[test]
