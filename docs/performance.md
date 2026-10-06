@@ -62,6 +62,44 @@ p10/p90 timings. Use `-- --filter dependency-metadata-extraction` to select a wo
 type, or filter by package name. `-- --test` checks outputs without timing.
 Allocation counts and requested bytes use the system allocator.
 
+## README results
+
+The README tables show the median of three session medians, converted from
+nanoseconds to microseconds and rounded to two decimal places. Each session ran
+all 29 extraction workloads with 31 samples per parser, a 20 ms sample target,
+and a 100 ms combined warmup per case. Parser order alternates between samples;
+case order is fixed. Each session checks that both parsers produce equal output
+before timing. Input loading is excluded; output destruction is included.
+
+The five displayed packages cover small headers (backcall and requests), many
+dependencies (Apache Airflow), and long folded license headers (NumPy and pandas).
+The dependency and publication tables use wheel `METADATA`; the WHEEL table uses
+the corresponding `WHEEL` files. The complete results, including the other four
+packages and requests' sdist `PKG-INFO`, are preserved in
+[session 1](../benchmarks/results/epyc-vm-e4fd8cb-session-1.csv),
+[session 2](../benchmarks/results/epyc-vm-e4fd8cb-session-2.csv), and
+[session 3](../benchmarks/results/epyc-vm-e4fd8cb-session-3.csv).
+CSV timings are in nanoseconds and retain each session's median and p10/p90.
+
+Measurements were collected on October 6, 2026, from clean source at
+[e4fd8cb](https://github.com/astral-sh/astral-mail-headers/tree/e4fd8cb13122da7ef08cd750fb944b77fe76c524),
+using mailparse 0.16.1, the system allocator, thin LTO, and one codegen unit.
+The compiler was `rustc 1.98.1-dev (f62703110 2026-09-08)` from `ohm-1.98.1-1`,
+with Ohm's experimental Cargo defaults disabled. The shared KVM VM used an AMD
+EPYC-Milan processor, Linux 6.8.0, and glibc 2.39. Runs were pinned to guest vCPU 0;
+physical-core exclusivity, host scheduling, CPU frequency, and neighboring
+workloads were not controlled. These measurements describe this corpus and host.
+The [run metadata](../benchmarks/results/epyc-vm-e4fd8cb.json) records commands,
+timestamps, compiler details, and dependency, fixture-manifest, and binary hashes.
+
+To reproduce the build and three sessions, use the benchmark executable printed
+by Cargo and run the second command three times:
+
+```console
+cargo +ohm -Zohm-defaults=no bench --locked --bench metadata-extraction --no-run
+taskset -c 0 <benchmark-executable> --bench --samples 31 --sample-ms 20 --warmup-ms 100
+```
+
 ## CodSpeed
 
 CodSpeed tracks instructions and allocations for the same 29 extraction workloads

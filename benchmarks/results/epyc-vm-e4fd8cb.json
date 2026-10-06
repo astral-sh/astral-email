@@ -1,0 +1,66 @@
+{
+  "revision": "e4fd8cb13122da7ef08cd750fb944b77fe76c524",
+  "source_status_before_run": "",
+  "rustc": "rustc 1.98.1-dev (f62703110 2026-09-08) (ohm-1.98.1-1)\nbinary: rustc\ncommit-hash: f6270311094cd4b48fefce03debdffcf8396c64c\ncommit-date: 2026-09-08\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1-dev\nLLVM version: 22.1.8\n",
+  "kernel": "Linux 6.8.0-106-generic",
+  "libc": "glibc 2.39",
+  "cpu": "AMD EPYC-Milan Processor",
+  "virtualization": "KVM",
+  "cpu_affinity": [
+    0
+  ],
+  "allocator": "system",
+  "build_command": "cargo +ohm -Zohm-defaults=no bench --locked --bench metadata-extraction --no-run",
+  "build_environment": {
+    "CARGO_TARGET_DIR": "/home/dev-user/code/oss/astral-mail-headers/target",
+    "CARGO_BUILD_BUILD_DIR": "/home/dev-user/.cache/ohm/build",
+    "CARGO_UNSTABLE_OHM_PROC_MACRO_TRUST": "all",
+    "CARGO_UNSTABLE_OHM_NATIVE_TOOL_TRUST": "all"
+  },
+  "rustflags": null,
+  "cargo_encoded_rustflags": null,
+  "release_profile": {
+    "lto": "thin",
+    "codegen-units": 1
+  },
+  "cargo_lock_sha256": "1fad0c21efe61d9449bb86668aba279fc1353e4ae879d9f06864d0fcb5c22090",
+  "fixture_manifest_sha256": "f9d52d855e7a3f9b155b6089cc910c8caea8a28e1ca0f48690e65828a649b884",
+  "binary_sha256": "70310b9885d968bad031ee22242f7c9c620fb2801cd6d6ac8798f352836fc8fa",
+  "run_command": [
+    "taskset",
+    "-c",
+    "0",
+    "/home/dev-user/.cache/ohm/build/release/deps/metadata_extraction-e50e764a2605c197",
+    "--bench",
+    "--samples",
+    "31",
+    "--sample-ms",
+    "20",
+    "--warmup-ms",
+    "100"
+  ],
+  "samples": 31,
+  "sample_ms": 20,
+  "warmup_ms": 100,
+  "readme_aggregation": "Median of three session medians, converted from nanoseconds to microseconds and rounded to two decimal places.",
+  "sessions": [
+    {
+      "file": "epyc-vm-e4fd8cb-session-1.csv",
+      "started_at": "2026-10-06T11:12:33.908047+00:00",
+      "finished_at": "2026-10-06T11:13:13.033780+00:00",
+      "sha256": "b0ac1647c8c7a03eab10be902035141390072fe94cca1025667b1358e5c92f4e"
+    },
+    {
+      "file": "epyc-vm-e4fd8cb-session-2.csv",
+      "started_at": "2026-10-06T11:13:13.034654+00:00",
+      "finished_at": "2026-10-06T11:13:52.080986+00:00",
+      "sha256": "f652b38782bdb93f2628ffa36670dd84f83e14a3e387c77b53d40bcf8779138b"
+    },
+    {
+      "file": "epyc-vm-e4fd8cb-session-3.csv",
+      "started_at": "2026-10-06T11:13:52.081316+00:00",
+      "finished_at": "2026-10-06T11:14:31.130182+00:00",
+      "sha256": "41c85081143459d5b192ebd9f633ed02bba69a4b12df77021bc98e49cdf88e80"
+    }
+  ]
+}

@@ -6,14 +6,49 @@ A high-performance email header parser designed for Python packaging.
 
 > [!WARNING]
 >
-> This project is developed with AI assistance, including its code and documentation.
+> This README was written by a human, but all code changes, PR summaries, and
+> additional documentation were authored entirely by GPT-6 Astra in Codex.
 
 ## Benchmarks
 
-Benchmarks use unmodified `METADATA`, `PKG-INFO`, and `WHEEL` files from published
-Python packages. They measure raw header parsing and owned dependency, publication,
-and wheel metadata extraction. See [Benchmarks](docs/performance.md) for the corpus,
-allocator comparisons, and commands.
+### Dependency metadata extraction
+
+Parse package metadata, extract owned fields used for dependency resolution, and
+drop the output (`astral_mail_headers::Message`).
+
+| Parser              | backcall | requests | Apache Airflow |  NumPy | pandas |
+| ------------------- | -------: | -------: | -------------: | -----: | -----: |
+| astral-mail-headers |     0.53 |     2.14 |          78.19 |   9.67 |  25.07 |
+| mailparse           |     2.37 |     9.03 |         260.62 | 195.41 | 288.96 |
+
+<sub>Times in microseconds (µs);
+[lower is better](docs/performance.md#readme-results).</sub>
+
+### Publication metadata extraction
+
+Parse package metadata, extract owned fields and the description used for
+publishing, and drop the output (`astral_mail_headers::Message`).
+
+| Parser              | backcall | requests | Apache Airflow |  NumPy | pandas |
+| ------------------- | -------: | -------: | -------------: | -----: | -----: |
+| astral-mail-headers |     1.62 |     5.10 |          91.48 |  30.28 |  52.62 |
+| mailparse           |     6.20 |    19.91 |         367.20 | 373.59 | 533.58 |
+
+<sub>Times in microseconds (µs);
+[lower is better](docs/performance.md#readme-results).</sub>
+
+### WHEEL metadata extraction
+
+Parse WHEEL headers, collect owned names and decoded values, and drop the output
+(`astral_mail_headers::Message`).
+
+| Parser              | backcall | requests | Apache Airflow | NumPy | pandas |
+| ------------------- | -------: | -------: | -------------: | ----: | -----: |
+| astral-mail-headers |     0.64 |     0.56 |           0.55 |  0.53 |   0.53 |
+| mailparse           |     1.42 |     1.20 |           1.19 |  1.15 |   1.16 |
+
+<sub>Times in microseconds (µs);
+[lower is better](docs/performance.md#readme-results).</sub>
 
 ## Example usage
 
