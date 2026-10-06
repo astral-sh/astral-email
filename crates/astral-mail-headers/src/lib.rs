@@ -121,16 +121,27 @@ impl<'a> Message<'a> {
                 position = end;
                 break;
             }
-            let continuation = matches!(line[0], b' ' | b'\t');
+            if matches!(line[0], b' ' | b'\t') {
+                position = end;
+                if envelope.take().is_some() {
+                    defects.push(Defect::MisplacedEnvelopeHeader);
+                }
+                if let Some((_, _, value_end)) = &mut pending {
+                    *value_end = content_end;
+                } else {
+                    defects.push(Defect::FirstHeaderLineIsContinuation);
+                }
+                continue;
+            }
             let is_envelope = line.starts_with(b"From ");
-            let colon = if continuation || is_envelope {
+            let colon = if is_envelope {
                 None
             } else {
                 line.iter()
                     .position(|byte| !(b'!'..=b'~').contains(byte) || *byte == b':')
                     .filter(|index| line[*index] == b':')
             };
-            if !continuation && !is_envelope && colon.is_none() {
+            if !is_envelope && colon.is_none() {
                 // Python gathers lines before processing individual headers.
                 defects.insert(0, Defect::MissingHeaderBodySeparator);
                 break;
@@ -140,29 +151,21 @@ impl<'a> Message<'a> {
                 defects.push(Defect::MisplacedEnvelopeHeader);
             }
 
-            if continuation {
-                if let Some((_, _, value_end)) = &mut pending {
-                    *value_end = content_end;
+            if let Some((name, value_start, value_end)) = pending.take() {
+                headers.push(header(name, &source[value_start..value_end]));
+            }
+            if is_envelope {
+                if start == 0 {
+                    unix_from = Some(line);
                 } else {
-                    defects.push(Defect::FirstHeaderLineIsContinuation);
+                    envelope = Some((start, end));
                 }
-            } else {
-                if let Some((name, value_start, value_end)) = pending.take() {
-                    headers.push(header(name, &source[value_start..value_end]));
-                }
-                if is_envelope {
-                    if start == 0 {
-                        unix_from = Some(line);
-                    } else {
-                        envelope = Some((start, end));
-                    }
-                } else if let Some(colon) = colon {
-                    if colon == 0 {
-                        defects.push(Defect::InvalidHeader);
-                    } else {
-                        let name = &line[..colon];
-                        pending = Some((name, start + colon + 1, content_end));
-                    }
+            } else if let Some(colon) = colon {
+                if colon == 0 {
+                    defects.push(Defect::InvalidHeader);
+                } else {
+                    let name = &line[..colon];
+                    pending = Some((name, start + colon + 1, content_end));
                 }
             }
         }
