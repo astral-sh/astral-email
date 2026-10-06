@@ -16,7 +16,6 @@ mailparse = { version = "=0.16.1", default-features = false }
 rustc-hash = { version = "2.0.0", default-features = false, features = ["std"] }
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
-encoding_rs = { version = "0.8.35", default-features = false, features = ["alloc"] }
 memchr = { version = "2.7.4", default-features = false, features = ["std"] }
 serde_json = { version = "1.0", default-features = false, features = ["std"] }
 simdutf8 = { version = "0.1.5", default-features = false, features = ["std", "aarch64_neon"] }

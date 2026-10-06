@@ -13,7 +13,6 @@ benchmark-jemalloc = ["dep:tikv-jemallocator"]
 
 [dependencies]
 base64.workspace = true
-encoding_rs.workspace = true
 memchr.workspace = true
 simdutf8.workspace = true
 

@@ -364,55 +364,73 @@ fn decode_charset<'a>(name: &str, bytes: &'a [u8]) -> Result<Cow<'a, str>, Decod
                 )
             }
         }
-        "iso8859-1" => encoding_rs::mem::decode_latin1(bytes),
+        "iso8859-1" => decode_single_byte(bytes, false),
         "utf-8" => decode_utf8(bytes),
         "utf-8-sig" => decode_utf8(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes)),
         "utf-16" => {
-            let (encoding, bytes) = if let Some(bytes) = bytes.strip_prefix(b"\xfe\xff") {
-                (encoding_rs::UTF_16BE, bytes)
+            let (big_endian, bytes) = if let Some(bytes) = bytes.strip_prefix(b"\xfe\xff") {
+                (true, bytes)
             } else if let Some(bytes) = bytes.strip_prefix(b"\xff\xfe") {
-                (encoding_rs::UTF_16LE, bytes)
+                (false, bytes)
             } else {
-                (
-                    if cfg!(target_endian = "big") {
-                        encoding_rs::UTF_16BE
-                    } else {
-                        encoding_rs::UTF_16LE
-                    },
-                    bytes,
-                )
+                (cfg!(target_endian = "big"), bytes)
             };
-            encoding.decode_without_bom_handling(bytes).0
+            Cow::Owned(decode_utf16(bytes, big_endian))
         }
-        "utf-16-be" | "utf-16-le" => {
-            let encoding = if normalized == "utf-16-be" {
-                encoding_rs::UTF_16BE
-            } else {
-                encoding_rs::UTF_16LE
-            };
-            encoding.decode_without_bom_handling(bytes).0
-        }
-        "cp1252" => {
-            let decoded = encoding_rs::WINDOWS_1252
-                .decode_without_bom_handling(bytes)
-                .0;
-            if decoded.contains(['\u{81}', '\u{8d}', '\u{8f}', '\u{90}', '\u{9d}']) {
-                Cow::Owned(
-                    decoded
-                        .chars()
-                        .map(|character| match character {
-                            '\u{81}' | '\u{8d}' | '\u{8f}' | '\u{90}' | '\u{9d}' => '\u{fffd}',
-                            character => character,
-                        })
-                        .collect(),
-                )
-            } else {
-                decoded
-            }
-        }
+        "utf-16-be" | "utf-16-le" => Cow::Owned(decode_utf16(bytes, normalized == "utf-16-be")),
+        "cp1252" => decode_single_byte(bytes, true),
         _ => return Err(DecodeError::UnsupportedCharset(name.to_owned())),
     };
     Ok(decoded)
+}
+
+/// Decode Latin-1 or Windows-1252, borrowing ASCII and replacing undefined bytes.
+fn decode_single_byte(bytes: &[u8], windows_1252: bool) -> Cow<'_, str> {
+    const WINDOWS_1252: [char; 32] = [
+        '€', '\u{fffd}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{fffd}', 'Ž',
+        '\u{fffd}', '\u{fffd}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ',
+        '\u{fffd}', 'ž', 'Ÿ',
+    ];
+    if bytes.is_ascii() {
+        return Cow::Borrowed(str::from_utf8(bytes).expect("ASCII is valid UTF-8"));
+    }
+    Cow::Owned(
+        bytes
+            .iter()
+            .map(|&byte| {
+                if windows_1252 && (0x80..=0x9f).contains(&byte) {
+                    WINDOWS_1252[usize::from(byte - 0x80)]
+                } else {
+                    char::from(byte)
+                }
+            })
+            .collect(),
+    )
+}
+
+/// Decode UTF-16 with Python's replacement grouping for truncated surrogate pairs.
+fn decode_utf16(bytes: &[u8], big_endian: bool) -> String {
+    let unit = |pair: &[u8; 2]| {
+        if big_endian {
+            u16::from_be_bytes(*pair)
+        } else {
+            u16::from_le_bytes(*pair)
+        }
+    };
+    let (units, remainder) = bytes.as_chunks::<2>();
+    let trailing_byte = !remainder.is_empty();
+    // A high surrogate and an incomplete following code unit form one error.
+    let truncated_pair = trailing_byte
+        && units
+            .last()
+            .is_some_and(|pair| (0xd800..=0xdbff).contains(&unit(pair)));
+    let mut decoded: String = char::decode_utf16(units.iter().map(unit))
+        .map(|character| character.unwrap_or(char::REPLACEMENT_CHARACTER))
+        .collect();
+    if trailing_byte && !truncated_pair {
+        decoded.push(char::REPLACEMENT_CHARACTER);
+    }
+    decoded
 }
 
 #[cfg(test)]
@@ -477,6 +495,28 @@ mod tests {
                 super::decode_charset(charset, value.as_bytes()).unwrap(),
                 Cow::Borrowed(text) if text == expected
             ));
+        }
+    }
+
+    #[test]
+    fn utf16_truncated_surrogates() {
+        // CPython bytes.decode(..., errors="replace") groups a high surrogate
+        // with a trailing byte, but replaces a lone low surrogate separately.
+        for (charset, bytes, expected) in [
+            ("utf-16-le", b"\x00\xd8A".as_slice(), "\u{fffd}"),
+            ("utf-16-be", b"\xd8\x00A", "\u{fffd}"),
+            ("utf-16-le", b"\x00\xdcA", "\u{fffd}\u{fffd}"),
+            ("utf-16-be", b"\xdc\x00A", "\u{fffd}\u{fffd}"),
+            ("utf-16-le", b"\x00\xd8\x00\xd8A", "\u{fffd}\u{fffd}"),
+            ("utf-16-be", b"\xd8\x00\xd8\x00A", "\u{fffd}\u{fffd}"),
+            ("utf-16-le", b"\x00\xd8\x00\xdcA", "\u{10000}\u{fffd}"),
+            ("utf-16-be", b"\xd8\x00\xdc\x00A", "\u{10000}\u{fffd}"),
+        ] {
+            assert_eq!(
+                super::decode_charset(charset, bytes).unwrap(),
+                expected,
+                "{charset}: {bytes:?}"
+            );
         }
     }
 

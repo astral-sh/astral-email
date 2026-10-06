@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Compare bounded Q/B and separator cases with the compiled decode_inspect example."""
+"""Compare exhaustive codec units and bounded headers with decode_inspect."""
 
 import argparse
 import base64
+import itertools
 import json
 from pathlib import Path
 import platform
@@ -19,7 +20,59 @@ def word(charset: str, data: bytes, encoding: str) -> str:
     return f"=?{charset}?{encoding}?{payload}?="
 
 
+def codec_values():
+    for charset in ["iso-8859-1", "windows-1252"]:
+        for encoding in ["Q", "B"]:
+            for byte in range(256):
+                yield word(charset, bytes([byte]), encoding)
+            yield word(charset, bytes(range(256)), encoding)
+
+    boundaries = [0, 0x61, 0xD7FF, 0xD800, 0xDBFF, 0xDC00, 0xDFFF, 0xE000, 0xFEFF, 0xFFFE, 0xFFFF]
+    for charset, byteorder in [("utf-16-le", "little"), ("utf-16-be", "big"), ("utf-16", sys.byteorder)]:
+        # Every code unit in isolation, balancing Q and B transfer encodings.
+        for unit in range(0x10000):
+            yield word(charset, unit.to_bytes(2, byteorder), "Q" if unit % 2 else "B")
+
+        # Exercise every high and low surrogate in a valid pair, including the
+        # lowest and highest supplementary characters.
+        for high in range(0xD800, 0xDC00):
+            for low in [0xDC00, 0xDFFF]:
+                data = high.to_bytes(2, byteorder) + low.to_bytes(2, byteorder)
+                yield word(charset, data, "B")
+        for low in range(0xDC00, 0xE000):
+            for high in [0xD800, 0xDBFF]:
+                data = high.to_bytes(2, byteorder) + low.to_bytes(2, byteorder)
+                yield word(charset, data, "Q")
+
+        # Adjacent boundary units test error consumption and BOM placement.
+        for first, second in itertools.product(boundaries, repeat=2):
+            data = first.to_bytes(2, byteorder) + second.to_bytes(2, byteorder)
+            yield word(charset, data, "B")
+        # A high surrogate followed by an incomplete unit is one Python error,
+        # while a low surrogate followed by an incomplete unit is two errors.
+        for unit, trailing in itertools.product(boundaries, range(256)):
+            yield word(charset, unit.to_bytes(2, byteorder) + bytes([trailing]), "Q")
+
+        # Explicit endianness preserves BOMs. Native UTF-16 consumes an initial
+        # BOM and may switch byte order; a second BOM remains part of the text.
+        for bom in [b"\xff\xfe", b"\xfe\xff"]:
+            for data in [b"", b"a", b"a\x00", b"\x00a", b"\x00\xd8", b"\xd8\x00", b"\x00\xd8a", b"\xd8\x00a"]:
+                for prefix in [bom, bom + bom]:
+                    yield word(charset, prefix + data, "B")
+
+        # Python joins adjacent encoded words before decoding the charset, even
+        # when a BOM, code unit, or surrogate pair straddles the word boundary.
+        for units in [(0x61,), (0xFEFF, 0x61), (0xFFFE, 0x61), (0xD800, 0xDC00), (0xD800, 0x61), (0xDC00,)]:
+            data = b"".join(unit.to_bytes(2, byteorder) for unit in units)
+            for suffix in [b"", b"a"]:
+                raw = data + suffix
+                for split in range(len(raw) + 1):
+                    for separator in ["", " ", "\r\n\t"]:
+                        yield word(charset, raw[:split], "Q") + separator + word(charset.upper(), raw[split:], "B")
+
+
 def values():
+    yield from codec_values()
     for separator in ["", " ", " text ", "\v"]:
         unknown = "=?unknown?q?a?="
         valid = "=?utf-8?q?b?="

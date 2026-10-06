@@ -44,7 +44,6 @@ version = "0.0.1"
 dependencies = [
  "base64",
  "codspeed-criterion-compat",
- "encoding_rs",
  "mailparse",
  "memchr",
  "rustc-hash",
