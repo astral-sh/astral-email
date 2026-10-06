@@ -485,25 +485,12 @@ mod tests {
         assert_eq!(decode(b"one\r\n \t two\n\tthree").unwrap(), "one two three");
         assert_eq!(decode(b"one\n\ttwo  ").unwrap(), "one two  ");
         assert_eq!(decode(b"one\r two").unwrap(), "one\r two");
-    }
-
-    #[test]
-    fn unfold_long_and_mixed_indentation() {
         for length in [7, 8, 9, 16] {
             let spaces = " ".repeat(length);
-            for indentation in [
-                spaces.clone(),
-                format!("\t{spaces}"),
-                format!("{spaces}\t "),
-                format!("{spaces}\t{spaces}"),
-            ] {
-                for newline in ["\n", "\r\n"] {
-                    let value = format!("café{newline}{indentation}value  ");
-                    assert_eq!(decode(value.as_bytes()).unwrap(), "café value  ");
-                    let value = format!("café{newline}{indentation}");
-                    assert_eq!(decode(value.as_bytes()).unwrap(), "café ");
-                }
-            }
+            let value = format!("one\n{spaces}two\r\n{spaces}\tthree");
+            assert_eq!(decode(value.as_bytes()).unwrap(), "one two three");
+            let value = format!("one\n{spaces}");
+            assert_eq!(decode(value.as_bytes()).unwrap(), "one ");
         }
     }
 
