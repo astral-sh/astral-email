@@ -22,7 +22,3 @@ Released on 2026-10-06.
 - Reduce encoded-word decoding allocations by borrowing payloads, reusing Base64 filtering storage, and writing Unicode escapes directly ([#25](https://github.com/astral-sh/astral-mail-headers/pull/25), [#45](https://github.com/astral-sh/astral-mail-headers/pull/45))
 - Process heavily folded metadata faster by reserving unfolded values, skipping indentation in chunks, and handling continuation lines early ([#22](https://github.com/astral-sh/astral-mail-headers/pull/22), [#51](https://github.com/astral-sh/astral-mail-headers/pull/51), [#52](https://github.com/astral-sh/astral-mail-headers/pull/52))
 - Preallocate eight header slots to avoid reallocation for typical package metadata, increasing initial allocation for smaller inputs ([#50](https://github.com/astral-sh/astral-mail-headers/pull/50))
-
-### Other changes
-
-- Publish the crate as `astral-mail-headers`, imported as `astral_mail_headers` ([#40](https://github.com/astral-sh/astral-mail-headers/pull/40))
