@@ -35,16 +35,17 @@ pub enum Defect {
 }
 
 /// A header whose name and value borrow from the source.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Header<'a> {
-    name: &'a str,
+    name: &'a [u8],
     value: &'a [u8],
 }
 
 impl<'a> Header<'a> {
     /// The original spelling of the ASCII field name.
+    #[inline]
     pub fn name(&self) -> &'a str {
-        self.name
+        std::str::from_utf8(self.name).expect("header names contain only printable ASCII")
     }
 
     /// The value returned by Python's `raw_items`, as bytes.
@@ -71,6 +72,16 @@ impl<'a> Header<'a> {
     }
 }
 
+impl std::fmt::Debug for Header<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Header")
+            .field("name", &self.name())
+            .field("value", &self.value)
+            .finish()
+    }
+}
+
 /// Ordered headers and an opaque body parsed with Python's `compat32` recovery.
 #[derive(Debug, Clone)]
 pub struct Message<'a> {
@@ -90,7 +101,7 @@ impl<'a> Message<'a> {
         let mut headers = Vec::new();
         let mut defects = Vec::new();
         let mut unix_from = None;
-        let mut pending: Option<(&str, usize, usize)> = None;
+        let mut pending: Option<(&[u8], usize, usize)> = None;
         let mut envelope: Option<(usize, usize)> = None;
         let mut position = 0;
 
@@ -149,8 +160,7 @@ impl<'a> Message<'a> {
                     if colon == 0 {
                         defects.push(Defect::InvalidHeader);
                     } else {
-                        let name = std::str::from_utf8(&line[..colon])
-                            .expect("header names contain only printable ASCII");
+                        let name = &line[..colon];
                         pending = Some((name, start + colon + 1, end));
                     }
                 }
@@ -188,14 +198,14 @@ impl<'a> Message<'a> {
     pub fn first(&self, name: &str) -> Option<&Header<'a>> {
         self.headers
             .iter()
-            .find(|header| header.name.eq_ignore_ascii_case(name))
+            .find(|header| header.name.eq_ignore_ascii_case(name.as_bytes()))
     }
 
     /// Iterate over matching headers in source order, ignoring ASCII case.
     pub fn all<'m>(&'m self, name: &'m str) -> impl Iterator<Item = &'m Header<'a>> {
         self.headers
             .iter()
-            .filter(move |header| header.name.eq_ignore_ascii_case(name))
+            .filter(move |header| header.name.eq_ignore_ascii_case(name.as_bytes()))
     }
 
     /// Body bytes, without MIME parsing, decoding or newline normalization.
@@ -215,7 +225,7 @@ impl<'a> Message<'a> {
 }
 
 /// Apply `compat32.header_source_parse` trimming to a contiguous field value.
-fn header<'a>(name: &'a str, mut value: &'a [u8]) -> Header<'a> {
+fn header<'a>(name: &'a [u8], mut value: &'a [u8]) -> Header<'a> {
     while matches!(value.first(), Some(b' ' | b'\t' | b'\r' | b'\n')) {
         value = &value[1..];
     }
