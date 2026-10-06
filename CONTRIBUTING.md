@@ -1,5 +1,19 @@
 # Contributing
 
+## Dependencies
+
+The library has four direct dependencies by default: `base64`, `encoding_rs`,
+`memchr`, and `simdutf8`. Test, example, and benchmark dependencies are declared
+under `[dev-dependencies]` and are not built by downstream users. The optional
+`benchmark-jemalloc` feature adds `tikv-jemallocator` on supported Linux targets.
+
+To inspect the default library dependency graph, including transitive and build
+dependencies:
+
+```console
+cargo tree -p astral-mail-headers --edges normal,build --locked
+```
+
 ## Checks
 
 ```console
