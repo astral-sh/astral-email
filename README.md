@@ -43,7 +43,7 @@ and [value decoding](https://github.com/astral-sh/astral-mail-headers/blob/main/
 ## Development
 
 See [Contributing](https://github.com/astral-sh/astral-mail-headers/blob/main/CONTRIBUTING.md)
-for tests, fuzzing, uv integration, and releases.
+for tests, fuzzing, and releases.
 
 ## License
 

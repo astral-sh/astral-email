@@ -1,4 +1,4 @@
-//! Packaging fixtures and field extraction used by uv.
+//! Published-package parsing and field extraction.
 
 mod support;
 
@@ -6,10 +6,7 @@ use astral_mail_headers::Message;
 
 #[test]
 fn packaging_headers_match_python() {
-    for (fixture, input) in support::fixtures()
-        .into_iter()
-        .chain(support::benchmark_fixtures())
-    {
+    for (fixture, input) in support::benchmark_fixtures() {
         let message = Message::parse(&input);
         assert_eq!(
             message.headers().len(),

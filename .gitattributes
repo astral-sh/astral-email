@@ -1,3 +1,1 @@
-crates/astral-mail-headers/tests/fixtures/uv/* -text -whitespace
 crates/astral-mail-headers/tests/fixtures/packages/** -text -whitespace
-scripts/uv-tests/*.patch -whitespace

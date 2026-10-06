@@ -1,5 +1,0 @@
-Metadata-Version: 2.3
-Name: abi3-package
-Version: 1.0.0
-Summary: Test package for abi3 wheel compatibility
-Requires-Python: >=3.7

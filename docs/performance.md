@@ -3,8 +3,7 @@
 Every performance benchmark uses unmodified files from published Python packages.
 The [corpus](../crates/astral-mail-headers/tests/fixtures/packages/manifest.json)
 contains nine wheel `METADATA` files, their nine `WHEEL` files, and requests'
-sdist `PKG-INFO`. Synthetic inputs and uv's handcrafted packages remain correctness
-tests only.
+sdist `PKG-INFO`. Synthetic inputs remain correctness tests only.
 
 | Package | METADATA bytes | Header bytes | Fields | Requires-Dist |
 | --- | ---: | ---: | ---: | ---: |

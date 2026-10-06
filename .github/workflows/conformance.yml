@@ -32,4 +32,4 @@ jobs:
       - run: python scripts/generate_decode_fixtures.py --check
       - run: cargo build -p astral-mail-headers --example decode_inspect --locked
       - run: python scripts/check_decode.py target/debug/examples/decode_inspect
-      - run: cargo test --locked --test python --test uv
+      - run: cargo test --locked --test python --test packages

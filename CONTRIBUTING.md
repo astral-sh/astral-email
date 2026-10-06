@@ -22,24 +22,6 @@ Omit `--check` to regenerate fixtures. For individual inputs, the generators'
 accept JSON lines: `input_hex` for raw parsing or `value` for decoding.
 See [Benchmarks](docs/performance.md) for performance checks.
 
-## uv integration
-
-Check out uv [`46b84fd0bfec23b72f29e8e2185ba68a65052f48`](https://github.com/astral-sh/uv/tree/46b84fd0bfec23b72f29e8e2185ba68a65052f48)
-into `uv-source` at the repository root, then run:
-
-```console
-python3 scripts/test_uv.py
-```
-
-The script applies the [adapter](scripts/uv-tests/uv-integration.patch) to uv's metadata and
-WHEEL readers and runs upstream and adapter tests, verifying that upstream test
-modules remain unchanged. The adapter accepts parser defects, propagates decoding
-errors, and leaves description UTF-8 validation to uv.
-
-Regenerate the [uv fixtures](crates/astral-mail-headers/tests/fixtures/uv/manifest.json)
-with `python3 scripts/update_uv_fixtures.py uv-source`. The manifest records source
-hashes and Python expectations; licenses are retained alongside the fixtures.
-
 ## Fuzzing
 
 | Target | Checks |

@@ -36,27 +36,15 @@ pub(crate) struct ExpectedHeader {
     pub(crate) raw_value_hex: String,
 }
 
-pub(crate) fn fixtures() -> Vec<(Fixture, Vec<u8>)> {
-    load_fixtures(include_str!("../fixtures/uv/manifest.json"), "uv")
-}
-
 /// Unmodified metadata from the published distributions used for performance tests.
 pub(crate) fn benchmark_fixtures() -> Vec<(Fixture, Vec<u8>)> {
-    load_fixtures(
-        include_str!("../fixtures/packages/manifest.json"),
-        "packages",
-    )
-}
-
-fn load_fixtures(manifest: &str, directory: &str) -> Vec<(Fixture, Vec<u8>)> {
     #[derive(Deserialize)]
     struct Manifest {
         cases: Vec<Fixture>,
     }
-    let manifest: Manifest = serde_json::from_str(manifest).unwrap();
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures")
-        .join(directory);
+    let manifest: Manifest =
+        serde_json::from_str(include_str!("../fixtures/packages/manifest.json")).unwrap();
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/packages");
     manifest
         .cases
         .into_iter()
@@ -69,12 +57,8 @@ fn load_fixtures(manifest: &str, directory: &str) -> Vec<(Fixture, Vec<u8>)> {
 
 /// Dependency, publication, and WHEEL metadata extraction from real packages.
 pub(crate) fn benchmark_cases() -> Vec<Case> {
-    extraction_cases(benchmark_fixtures())
-}
-
-fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
     let mut cases = Vec::new();
-    for (fixture, input) in fixtures {
+    for (fixture, input) in benchmark_fixtures() {
         let kinds: &[Kind] = match fixture.kind {
             Kind::Wheel => &[Kind::Wheel],
             Kind::Resolution | Kind::Publish => &[Kind::Resolution, Kind::Publish],
@@ -96,9 +80,9 @@ fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
     cases
 }
 
-/// Compatibility fixtures and generated edge cases belong to correctness tests.
+/// Generated edge cases belong to correctness tests.
 pub(crate) fn conformance_cases() -> Vec<Case> {
-    let mut cases = extraction_cases(fixtures());
+    let mut cases = Vec::new();
     for count in [10, 100, 1_000] {
         let mut input = "Metadata-Version: 2.4\nName: demo\nVersion: 1.0\n".to_owned();
         for index in 0..count {
