@@ -1,0 +1,32 @@
+# Owned metadata extraction
+# allocator=system samples=31 sample_ms=20 warmup_ms=100
+case,bytes,header_bytes,astral_mail_headers_ns,mailparse_ns,speedup,astral_mail_headers_p10_ns,astral_mail_headers_p90_ns,mailparse_p10_ns,mailparse_p90_ns
+backcall-0.2.0.WHEEL-wheel-metadata-extraction,99,99,634.737,1418.076,2.234,629.358,804.905,1395.796,1674.666
+backcall-0.2.0.METADATA-dependency-metadata-extraction,1966,478,524.953,2338.589,4.455,520.022,528.027,2320.382,2390.389
+backcall-0.2.0.METADATA-publication-metadata-extraction,1966,478,1614.015,6117.979,3.791,1610.504,1620.383,6085.168,6166.815
+six-1.16.0.METADATA-dependency-metadata-extraction,1795,615,767.783,3199.012,4.167,764.179,773.769,3186.768,3246.054
+six-1.16.0.METADATA-publication-metadata-extraction,1795,615,2113.802,8044.072,3.805,2101.031,2129.623,8001.333,8110.951
+six-1.16.0.WHEEL-wheel-metadata-extraction,110,110,642.057,1474.178,2.296,636.366,660.138,1446.691,1517.745
+packaging-26.3.WHEEL-wheel-metadata-extraction,82,82,555.425,1152.797,2.076,551.904,560.668,1141.382,1165.493
+packaging-26.3.METADATA-dependency-metadata-extraction,3544,1288,1047.102,5518.409,5.270,1042.260,1073.451,5489.394,5548.435
+packaging-26.3.METADATA-publication-metadata-extraction,3544,1288,3497.763,14381.471,4.112,3445.398,3607.393,14268.485,14608.152
+requests-2.32.3.METADATA-dependency-metadata-extraction,4610,1681,2120.341,8984.700,4.237,2088.348,2179.620,8835.912,9233.853
+requests-2.32.3.METADATA-publication-metadata-extraction,4610,1681,5059.584,19912.526,3.936,5016.096,5169.486,19620.858,20469.548
+requests-2.32.3.WHEEL-wheel-metadata-extraction,92,92,553.485,1175.084,2.123,550.785,559.814,1167.857,1203.215
+black-24.8.0.METADATA-dependency-metadata-extraction,78181,2088,2825.502,11831.011,4.187,2808.558,2846.344,11745.342,11938.239
+black-24.8.0.METADATA-publication-metadata-extraction,78181,2088,10774.515,29138.226,2.704,10701.199,11045.228,28870.586,30648.408
+black-24.8.0.WHEEL-wheel-metadata-extraction,87,87,552.214,1169.222,2.117,547.617,565.263,1159.966,1196.892
+setuptools-75.1.0.METADATA-dependency-metadata-extraction,6855,4247,8051.397,29219.641,3.629,7977.482,8123.458,29063.343,29647.746
+setuptools-75.1.0.METADATA-publication-metadata-extraction,6855,4247,11268.170,46285.606,4.108,11038.183,12308.173,45622.466,48176.712
+setuptools-75.1.0.WHEEL-wheel-metadata-extraction,91,91,561.020,1185.665,2.113,553.873,595.208,1165.350,1228.766
+numpy-2.1.2.WHEEL-wheel-metadata-extraction,94,94,524.413,1129.464,2.154,522.652,532.258,1122.630,1163.629
+numpy-2.1.2.METADATA-dependency-metadata-extraction,60936,56958,9676.336,196025.689,20.258,9606.152,10406.376,194453.631,199854.845
+numpy-2.1.2.METADATA-publication-metadata-extraction,60936,56958,30276.095,372109.472,12.291,30100.602,30594.028,370635.434,386244.491
+pandas-2.2.3.WHEEL-wheel-metadata-extraction,94,94,535.221,1145.315,2.140,524.955,598.576,1127.939,1197.586
+pandas-2.2.3.METADATA-dependency-metadata-extraction,89901,78364,25069.231,288961.655,11.527,24802.190,25694.872,286916.983,295142.828
+pandas-2.2.3.METADATA-publication-metadata-extraction,89901,78364,52241.586,532241.633,10.188,51517.851,52676.770,529450.467,545282.600
+apache-airflow-2.10.2.METADATA-dependency-metadata-extraction,44670,33807,79339.508,260619.722,3.285,77706.110,83020.335,254183.165,292323.443
+apache-airflow-2.10.2.METADATA-publication-metadata-extraction,44670,33807,90400.619,364733.302,4.035,88314.489,92173.202,360730.906,370466.453
+apache-airflow-2.10.2.WHEEL-wheel-metadata-extraction,87,87,552.444,1164.492,2.108,548.329,562.057,1150.056,1175.288
+requests-2.32.3.PKG-INFO-dependency-metadata-extraction,4602,1673,2122.237,8994.111,4.238,2105.453,2173.675,8892.047,9287.303
+requests-2.32.3.PKG-INFO-publication-metadata-extraction,4602,1673,5151.566,19766.679,3.837,4995.754,5213.711,19355.130,19914.009
