@@ -39,7 +39,7 @@ def main():
         parser.error(f"expected uv {REVISION}, found {revision}")
     check_test_modules(checkout)
 
-    patch = str(ROOT / "docs/uv-integration.patch")
+    patch = str(ROOT / "scripts/uv-tests/uv-integration.patch")
     applied = subprocess.run(
         ["git", "apply", "--reverse", "--check", patch],
         cwd=checkout,
