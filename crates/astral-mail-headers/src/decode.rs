@@ -34,6 +34,7 @@ impl std::error::Error for DecodeError {}
 /// Unlike Python's intermediate `raw-unicode-escape` representation, ordinary
 /// Unicode text beside encoded words remains Unicode. Invalid raw UTF-8 and
 /// malformed bytes in a supported charset become U+FFFD.
+#[inline]
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     let text = decode_utf8(raw);
     if !memchr::memchr2_iter(b'\n', b'=', text.as_bytes()).any(|offset| {
@@ -44,6 +45,12 @@ pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     }) {
         return Ok(text);
     }
+    decode_transformed(text)
+}
+
+/// Keep allocation and encoded-word state out of the ordinary-value path.
+#[inline(never)]
+fn decode_transformed(text: Cow<'_, str>) -> Result<Cow<'_, str>, DecodeError> {
     let unfolded = unfold(&text);
     if !has_encoded_word(&unfolded) {
         return Ok(match unfolded {
@@ -111,7 +118,7 @@ fn decode_utf8(bytes: &[u8]) -> Cow<'_, str> {
 /// Python checks for a marker before splitting lines; charsets can include LF.
 fn has_encoded_word(value: &str) -> bool {
     let bytes = value.as_bytes();
-    let Some(start) = value.find("=?") else {
+    let Some(start) = memchr::memmem::find(bytes, b"=?") else {
         return false;
     };
     let mut charset = true;
@@ -174,31 +181,25 @@ fn parts(value: &str) -> impl Iterator<Item = Part<'_>> {
 /// Replace a folded newline and its following indentation with one space.
 fn unfold(value: &str) -> Cow<'_, str> {
     let bytes = value.as_bytes();
-    let mut output = None;
+    let mut folds = memchr::memchr_iter(b'\n', bytes)
+        .filter(|&newline| matches!(bytes.get(newline + 1), Some(b' ' | b'\t')));
+    let Some(first) = folds.next() else {
+        return Cow::Borrowed(value);
+    };
+    let mut output = String::with_capacity(value.len());
     let mut copied = 0;
-    let mut cursor = 0;
-    while let Some(offset) = value[cursor..].find('\n') {
-        let newline = cursor + offset;
-        cursor = newline + 1;
-        if !matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
-            continue;
-        }
+    for newline in std::iter::once(first).chain(folds) {
         let end = newline - usize::from(newline > 0 && bytes[newline - 1] == b'\r');
-        let output = output.get_or_insert_with(|| String::with_capacity(value.len()));
         output.push_str(&value[copied..end]);
         output.push(' ');
+        let mut cursor = newline + 1;
         while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
             cursor += 1;
         }
         copied = cursor;
     }
-    match output {
-        Some(mut output) => {
-            output.push_str(&value[copied..]);
-            Cow::Owned(output)
-        }
-        None => Cow::Borrowed(value),
-    }
+    output.push_str(&value[copied..]);
+    Cow::Owned(output)
 }
 
 struct Word<'a> {

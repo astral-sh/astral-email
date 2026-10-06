@@ -21,6 +21,15 @@ fn preserves_order_and_borrows_values() {
 }
 
 #[test]
+fn header_debug_preserves_textual_name() {
+    let message = Message::parse(b"Name: x\n");
+    assert_eq!(
+        format!("{:?}", message.headers()[0]),
+        r#"Header { name: "Name", value: [120] }"#,
+    );
+}
+
+#[test]
 fn preserves_folding_and_encoded_words() {
     let message = Message::parse(b"Name: \r\n\t =?utf-8?q?demo?=\r\n next \r\n\r\n");
     assert_eq!(
