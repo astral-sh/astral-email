@@ -33,31 +33,40 @@ python3 scripts/update_package_fixtures.py
 python3 scripts/update_package_fixtures.py --check
 ```
 
+## Workloads
+
+| Benchmark label | Work measured |
+| --- | --- |
+| `raw-header-parsing` | Collect borrowed header names and undecoded values, leaving the body opaque. |
+| `dependency-metadata-extraction` | Parse and decode `Name`, `Version`, `Requires-Dist`, `Requires-Python`, `Provides-Extra`, and `Dynamic`. |
+| `publication-metadata-extraction` | Parse and decode publication fields, including `Author`, `License`, and `Classifier`, and extract the description. |
+| `wheel-metadata-extraction` | Parse and decode all WHEEL headers. |
+
+Extraction produces owned field values; it does not solve dependencies, build
+packages, or upload them. Fixture loading is excluded from measurements;
+output destruction is included.
+
 ## Wall-clock timing and allocations
 
-The `parse` benchmark compares owned field extraction against mailparse: resolution
-and publishing for all ten metadata files, plus the nine WHEEL files. It checks
-both parsers' output before timing. Fixture loading is excluded; output destruction
-is included.
+The `metadata-extraction` benchmark compares all 29 extraction workloads against
+mailparse, checking both parsers' output before timing.
 
 ```console
-cargo bench --locked --bench parse
-cargo bench --locked --bench parse --features benchmark-jemalloc
+cargo bench --locked --bench metadata-extraction
+cargo bench --locked --bench metadata-extraction --features benchmark-jemalloc
 cargo run --release --locked --example allocations
 ```
 
 The timing benchmark prints CSV with total bytes, header bytes, and median and
-p10/p90 timings. Use `-- --filter NAME` to select workloads or `-- --test` to check
-outputs without timing. Allocation counts and requested bytes use the system
-allocator. Compare optimization candidates separately for each workload and both
-allocators; repeated runs help distinguish changes from timing noise.
+p10/p90 timings. Use `-- --filter dependency-metadata-extraction` to select a workload
+type, or filter by package name. `-- --test` checks outputs without timing.
+Allocation counts and requested bytes use the system allocator.
 
 ## CodSpeed
 
 CodSpeed tracks instructions and allocations for the same 29 extraction workloads
-and raw parsing of all 19 files. Parse throughput counts only header bytes, since
-the description remains opaque. Extraction throughput counts complete operations.
-Fixture setup is excluded; output destruction is included.
+and raw header parsing of all 19 files. Raw parsing throughput counts header bytes;
+extraction throughput counts complete operations.
 
 ```console
 cargo install cargo-codspeed --version 5.0.1 --locked

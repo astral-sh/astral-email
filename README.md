@@ -10,15 +10,10 @@ A high-performance email header parser designed for Python packaging.
 
 ## Benchmarks
 
-All performance benchmarks use unmodified `METADATA`, `PKG-INFO`, and `WHEEL`
-files from published Python packages: backcall, six, packaging, requests, Black,
-setuptools, NumPy, pandas, and Apache Airflow. The corpus covers small wheel
-headers, ordinary package metadata, long folded licenses, large descriptions,
-and hundreds of dependencies.
-
-We measure parsing, owned field extraction for resolution and publishing, and
-allocations. The wall-clock benchmark compares against mailparse with the system
-allocator or jemalloc. See the [corpus and benchmark commands](docs/performance.md).
+Benchmarks use unmodified `METADATA`, `PKG-INFO`, and `WHEEL` files from published
+Python packages. They measure raw header parsing and owned dependency, publication,
+and wheel metadata extraction. See [Benchmarks](docs/performance.md) for the corpus,
+allocator comparisons, and commands.
 
 ## Example usage
 
