@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed fuzz targets from the Python, decoder and pinned uv fixtures."""
+"""Seed fuzz targets from Python, decoder, and published-package fixtures."""
 
 import argparse
 import hashlib
@@ -55,12 +55,12 @@ def seed_inputs():
     ]:
         add(value)
 
-    cases = json.loads(read(fixtures / "uv/manifest.json"))["cases"]
-    report["uv_inputs"] = len(cases)
+    cases = json.loads(read(fixtures / "packages/manifest.json"))["cases"]
+    report["package_inputs"] = len(cases)
     for case in cases:
-        data = read(fixtures / "uv" / case["file"])
+        data = read(fixtures / "packages" / case["file"])
         if hashlib.sha256(data).hexdigest() != case["sha256"]:
-            raise ValueError(f"uv fixture hash changed: {case['file']}")
+            raise ValueError(f"package fixture hash changed: {case['file']}")
         add(data)
         add(data[:case["body_start"]])
         for header in case["headers"]:

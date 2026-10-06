@@ -38,20 +38,4 @@ Unlike `compat32` field lookup, this API decodes encoded words. It unfolds first
 and preserves ordinary Unicode beside them: `café =?utf-8?q?ok?=` becomes `café ok`,
 without Python's intermediate `raw-unicode-escape` conversion of ordinary text.
 
-## Checking the decoder
-
-Run with CPython 3.12.13 on a little-endian host:
-
-```console
-python scripts/generate_decode_fixtures.py --check
-cargo test -p astral-mail-headers --lib decode::tests
-cargo build -p astral-mail-headers --example decode_inspect --locked
-python scripts/check_decode.py target/debug/examples/decode_inspect
-```
-
-Omit `--check` to regenerate the [codec fixtures](../crates/astral-mail-headers/tests/fixtures/decode.json).
-The differential check compares ASCII inputs using supported codecs. Both adapters
-parse an `X:` header to apply the same trimming; Python then unfolds its value,
-calls `decode_header`, and converts the parts with `errors="replace"`.
-`generate_decode_fixtures.py --stdin` and `decode_inspect` accept JSON lines with a
-`value` string and return decoded text or an error code.
+See [Contributing](../CONTRIBUTING.md) for fixture generation and differential tests.

@@ -18,21 +18,6 @@ The initial `From ` envelope line is stored separately. A trailing `From ` line
 after headers is recovered into the body, omitting the empty separator if present.
 This can require an owned body; ordinary bodies borrow the source unchanged.
 
-## Reproducing the corpus
-
-Run with CPython 3.12.13:
-
-```console
-python scripts/generate_conformance.py
-python scripts/generate_conformance.py --check
-cargo test -p astral-mail-headers --test python
-```
-
-The [fixtures](../crates/astral-mail-headers/tests/fixtures/python.json) compare
-raw headers, body bytes, the envelope line, and defects. For individual inputs,
-`generate_conformance.py --stdin` and the Rust `inspect` example accept JSON lines
-with an `input_hex` field. See [fuzzing](fuzzing.md) for differential fuzz tests.
-
 ## Decoding and exclusions
 
 Raw parsing leaves text conversion to [`Header::decoded_value`](decoding.md).
@@ -45,3 +30,5 @@ outside this parser's scope.
 Header storage grows with the number of fields and defects; lookups scan the
 header list. There are no built-in size or field-count limits, so callers must
 bound input reads to their resource budget.
+
+See [Contributing](../CONTRIBUTING.md) for fixture generation and differential tests.

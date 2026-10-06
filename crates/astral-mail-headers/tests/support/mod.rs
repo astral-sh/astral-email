@@ -36,10 +36,6 @@ pub(crate) struct ExpectedHeader {
     pub(crate) raw_value_hex: String,
 }
 
-pub(crate) fn fixtures() -> Vec<(Fixture, Vec<u8>)> {
-    load_fixtures(include_str!("../fixtures/uv/manifest.json"), "uv")
-}
-
 /// Unmodified metadata from the published distributions used for performance tests.
 pub(crate) fn benchmark_fixtures() -> Vec<(Fixture, Vec<u8>)> {
     load_fixtures(
@@ -96,9 +92,9 @@ fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
     cases
 }
 
-/// Compatibility fixtures and generated edge cases belong to correctness tests.
+/// Generated edge cases belong to correctness tests.
 pub(crate) fn conformance_cases() -> Vec<Case> {
-    let mut cases = extraction_cases(fixtures());
+    let mut cases = Vec::new();
     for count in [10, 100, 1_000] {
         let mut input = "Metadata-Version: 2.4\nName: demo\nVersion: 1.0\n".to_owned();
         for index in 0..count {

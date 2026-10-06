@@ -1,5 +1,54 @@
 # Contributing
 
+## Checks
+
+```console
+cargo test --workspace --all-targets --all-features --locked
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+```
+
+Check Python compatibility with CPython 3.12.13 on a little-endian host:
+
+```console
+python3 scripts/generate_conformance.py --check
+python3 scripts/generate_decode_fixtures.py --check
+cargo build -p astral-mail-headers --example decode_inspect --locked
+python3 scripts/check_decode.py target/debug/examples/decode_inspect
+```
+
+The decoder differential check covers ASCII inputs and supported codecs.
+Omit `--check` to regenerate fixtures. For individual inputs, the generators'
+`--stdin` mode and the Rust [inspect examples](crates/astral-mail-headers/examples/)
+accept JSON lines: `input_hex` for raw parsing or `value` for decoding.
+See [Benchmarks](docs/performance.md) for performance checks.
+
+## Fuzzing
+
+| Target | Checks |
+| --- | --- |
+| `reader` | Borrowed ranges, header order, valid names, envelope position, and repeatable parsing |
+| `decode` | Repeatable decoding and borrowed output ranges for arbitrary bytes |
+| `lookup` | Ordered, ASCII-case-insensitive first and all lookups |
+| `python` | Raw headers, body, envelope, and defects against Python `compat32` |
+| `python_decode` | ASCII inputs against Python decoding with supported codecs |
+
+The Python targets require CPython 3.12.13; set `ASTRAL_EMAIL_PYTHON` if it is not
+`python3`. Non-ASCII text follows the separate [decoding policy](docs/decoding.md).
+
+Install a nightly Rust toolchain, then run from the repository root:
+
+```console
+cargo install cargo-fuzz --version 0.13.2 --locked
+python3 fuzz/seed_corpus.py
+cargo +nightly fuzz run python fuzz/generated/python -- -dict=fuzz/email.dict -max_len=16384 -len_control=0 -max_total_time=900 -timeout=5 -rss_limit_mb=2048 -print_final_stats=1
+```
+
+Replace `python` in the target and corpus path to run another target. Reproduce
+and minimize a saved failure with `cargo +nightly fuzz run python PATH` and
+`cargo +nightly fuzz tmin python PATH`, then retain it as a regression test.
+[CI](.github/workflows/fuzz.yml) runs short PR checks and longer scheduled campaigns
+with AddressSanitizer, saving logs, corpora, and failures as artifacts.
+
 ## Releases
 
 Releases can only be performed by Astral team members.
