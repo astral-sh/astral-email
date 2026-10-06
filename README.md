@@ -72,14 +72,6 @@ Header parsing and malformed-input recovery follow Python's
 `email.parser.BytesHeaderParser` with the `compat32` policy. The body remains
 opaque; MIME parsing, writing, and mutation are outside the library's scope.
 
-See [conformance](https://github.com/astral-sh/astral-mail-headers/blob/main/docs/conformance.md)
-and [value decoding](https://github.com/astral-sh/astral-mail-headers/blob/main/docs/decoding.md).
-
-## Development
-
-See [Contributing](https://github.com/astral-sh/astral-mail-headers/blob/main/CONTRIBUTING.md)
-for tests, fuzzing, and releases.
-
 ## License
 
 astral-mail-headers is licensed under either of
