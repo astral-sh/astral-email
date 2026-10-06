@@ -193,6 +193,9 @@ fn unfold(value: &str) -> Cow<'_, str> {
         output.push_str(&value[copied..end]);
         output.push(' ');
         let mut cursor = newline + 1;
+        while bytes[cursor..].starts_with(b"        ") {
+            cursor += 8;
+        }
         while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
             cursor += 1;
         }
@@ -482,6 +485,26 @@ mod tests {
         assert_eq!(decode(b"one\r\n \t two\n\tthree").unwrap(), "one two three");
         assert_eq!(decode(b"one\n\ttwo  ").unwrap(), "one two  ");
         assert_eq!(decode(b"one\r two").unwrap(), "one\r two");
+    }
+
+    #[test]
+    fn unfold_long_and_mixed_indentation() {
+        for length in [7, 8, 9, 16] {
+            let spaces = " ".repeat(length);
+            for indentation in [
+                spaces.clone(),
+                format!("\t{spaces}"),
+                format!("{spaces}\t "),
+                format!("{spaces}\t{spaces}"),
+            ] {
+                for newline in ["\n", "\r\n"] {
+                    let value = format!("café{newline}{indentation}value  ");
+                    assert_eq!(decode(value.as_bytes()).unwrap(), "café value  ");
+                    let value = format!("café{newline}{indentation}");
+                    assert_eq!(decode(value.as_bytes()).unwrap(), "café ");
+                }
+            }
+        }
     }
 
     #[test]
