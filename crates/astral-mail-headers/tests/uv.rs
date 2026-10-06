@@ -6,7 +6,10 @@ use astral_mail_headers::Message;
 
 #[test]
 fn packaging_headers_match_python() {
-    for (fixture, input) in support::fixtures() {
+    for (fixture, input) in support::fixtures()
+        .into_iter()
+        .chain(support::benchmark_fixtures())
+    {
         let message = Message::parse(&input);
         assert_eq!(
             message.headers().len(),
@@ -43,7 +46,10 @@ fn packaging_headers_match_python() {
 
 #[test]
 fn packaging_field_extraction_matches_mailparse() {
-    for case in support::cases() {
+    for case in support::conformance_cases()
+        .into_iter()
+        .chain(support::benchmark_cases())
+    {
         assert_eq!(
             support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),

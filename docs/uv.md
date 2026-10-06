@@ -37,7 +37,9 @@ UTF-8.
 
 The [fixture manifest](../crates/astral-mail-headers/tests/fixtures/uv/manifest.json)
 records archive members, the source revision, content hashes, and expected Python
-headers. uv's MIT and Apache licenses and Black's license are retained in the
+headers. These fixtures cover compatibility, including handcrafted test packages;
+performance benchmarks use a [separate corpus of published packages](performance.md).
+uv's MIT and Apache licenses and Black's license are retained in the
 [fixture directory](../crates/astral-mail-headers/tests/fixtures/uv/).
 
 Regenerate from the pinned checkout:

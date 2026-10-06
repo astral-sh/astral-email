@@ -21,7 +21,7 @@ fn measure<T>(run: impl FnOnce() -> T) -> Stats {
 
 fn main() {
     println!("case,parser,allocations,reallocations,bytes_allocated,bytes_reallocated");
-    for case in support::cases() {
+    for case in support::benchmark_cases() {
         assert_eq!(
             support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
@@ -44,11 +44,12 @@ fn main() {
     }
 
     // Reading an opaque body must not allocate in proportion to its size.
-    let headers = b"Name: demo\nVersion: 1\n\n";
-    let mut large_body = headers.to_vec();
-    large_body.resize(headers.len() + 16 * 1024 * 1024, b'x');
-    assert_eq!(
-        measure(|| Message::parse(headers)),
-        measure(|| Message::parse(&large_body)),
-    );
+    for (fixture, input) in support::benchmark_fixtures() {
+        assert_eq!(
+            measure(|| Message::parse(&input[..fixture.body_start])),
+            measure(|| Message::parse(&input)),
+            "{}",
+            fixture.name,
+        );
+    }
 }
