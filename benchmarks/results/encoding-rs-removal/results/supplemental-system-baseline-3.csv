@@ -1,0 +1,18 @@
+# Supplemental synthetic RFC2047 decoded_value; parse/setup excluded, output destruction included
+# samples=31 sample_ms=20 warmup_ms=100
+case,input_bytes,output_bytes,median_ns,p10_ns,p90_ns
+latin1-ascii-short,51,22,575.543,573.111,578.072
+latin1-ascii-long,3211,1597,23162.418,23077.308,23648.368
+latin1-non-ascii-short,55,31,671.740,670.245,677.017
+latin1-non-ascii-long,3711,2173,29938.512,29850.648,30026.972
+cp1252-special-short,49,33,693.403,691.593,699.325
+cp1252-special-long,3187,2301,26938.546,26855.177,27245.760
+utf16-native-bom-short,95,26,1091.123,1084.685,1124.121
+utf16-native-bom-long,6207,1853,48609.097,48324.675,49151.435
+utf16-le-short,101,26,1141.464,1134.822,1153.844
+utf16-le-long,6540,1853,50181.911,49992.154,50488.042
+utf16-be-short,101,26,1140.216,1131.442,1168.539
+utf16-be-long,6540,1853,50473.791,50054.749,51589.744
+cp1252-invalid,65,86,1117.584,1113.451,1139.107
+utf16-le-malformed,38,14,602.090,598.975,610.090
+utf16-be-malformed,38,14,597.481,593.369,601.872

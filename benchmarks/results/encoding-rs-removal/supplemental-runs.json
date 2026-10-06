@@ -1,0 +1,170 @@
+[
+  {
+    "name": "supplemental-system-baseline-1",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:52:59.986318+00:00",
+    "finished_at": "2026-10-06T13:53:11.102452+00:00",
+    "binary_sha256": "dfaa27fb7ed42093fb7675c57ca7cfb67ed20a69607a9244c24fa6a5b76beabc",
+    "csv_sha256": "873d5e6ec196667adaa8887c6dfb488ba531b50b2b2801ec11ad8963756434a2"
+  },
+  {
+    "name": "supplemental-system-candidate-1",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:53:11.106272+00:00",
+    "finished_at": "2026-10-06T13:53:22.099582+00:00",
+    "binary_sha256": "a59fea7764b24f3232fc18361d956d386630428b76d43f08f7ce6ec0ff90ca96",
+    "csv_sha256": "fa86642f51330796e05dfbda246311b02e5cbafb88c73b734648b45ce1e85873"
+  },
+  {
+    "name": "supplemental-jemalloc-baseline-1",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:53:22.104326+00:00",
+    "finished_at": "2026-10-06T13:53:33.135883+00:00",
+    "binary_sha256": "ae3660843bb58ba05d9deb5027d4af89bb7a61b28e5846f738a82b2cf47bf518",
+    "csv_sha256": "db4dd613df8f4ad83453c779ba485a86d2c9087303376dc3b898f325129e696b"
+  },
+  {
+    "name": "supplemental-jemalloc-candidate-1",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:53:33.140025+00:00",
+    "finished_at": "2026-10-06T13:53:44.025050+00:00",
+    "binary_sha256": "36b946b049819af06fe673b3a5202fb5a7735205aae4aee8d394639e5347cd08",
+    "csv_sha256": "69111baf2db623e7d1b66848f6af17c84aedb1b6cb29b5fe8aa80e4663f767ce"
+  },
+  {
+    "name": "supplemental-jemalloc-candidate-2",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:53:44.035188+00:00",
+    "finished_at": "2026-10-06T13:53:54.871847+00:00",
+    "binary_sha256": "36b946b049819af06fe673b3a5202fb5a7735205aae4aee8d394639e5347cd08",
+    "csv_sha256": "561011b79e2be41655ee35672d41a64746ace9226462a6408e86a9386555930e"
+  },
+  {
+    "name": "supplemental-jemalloc-baseline-2",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:53:54.873681+00:00",
+    "finished_at": "2026-10-06T13:54:05.709946+00:00",
+    "binary_sha256": "ae3660843bb58ba05d9deb5027d4af89bb7a61b28e5846f738a82b2cf47bf518",
+    "csv_sha256": "ecb05f02ec85d7a92f34f4f57561e9c27d7f3d0a59d05e60c997697cd13af959"
+  },
+  {
+    "name": "supplemental-system-candidate-2",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:54:05.712512+00:00",
+    "finished_at": "2026-10-06T13:54:16.700172+00:00",
+    "binary_sha256": "a59fea7764b24f3232fc18361d956d386630428b76d43f08f7ce6ec0ff90ca96",
+    "csv_sha256": "d9d85dd2a0d75b6434c098bf407ef860598c6ffbaf438528f3ed905f069e442e"
+  },
+  {
+    "name": "supplemental-system-baseline-2",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:54:16.702073+00:00",
+    "finished_at": "2026-10-06T13:54:27.429201+00:00",
+    "binary_sha256": "dfaa27fb7ed42093fb7675c57ca7cfb67ed20a69607a9244c24fa6a5b76beabc",
+    "csv_sha256": "5c162261096754d9f08163dc2086341f8f1ad70410f24295170b0ef4cc86446f"
+  },
+  {
+    "name": "supplemental-system-baseline-3",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:54:27.433083+00:00",
+    "finished_at": "2026-10-06T13:54:38.443612+00:00",
+    "binary_sha256": "dfaa27fb7ed42093fb7675c57ca7cfb67ed20a69607a9244c24fa6a5b76beabc",
+    "csv_sha256": "534cb48c89e01a7e0c6087205a38da64281727cb533e085096b7a58a367eae01"
+  },
+  {
+    "name": "supplemental-system-candidate-3",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-system-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:54:38.452220+00:00",
+    "finished_at": "2026-10-06T13:54:49.474051+00:00",
+    "binary_sha256": "a59fea7764b24f3232fc18361d956d386630428b76d43f08f7ce6ec0ff90ca96",
+    "csv_sha256": "78430bd1fa7f29109399b49d5ea83412832839a88a147ae34140a83e24a32891"
+  },
+  {
+    "name": "supplemental-jemalloc-baseline-3",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/baseline-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:54:49.476941+00:00",
+    "finished_at": "2026-10-06T13:55:00.430361+00:00",
+    "binary_sha256": "ae3660843bb58ba05d9deb5027d4af89bb7a61b28e5846f738a82b2cf47bf518",
+    "csv_sha256": "5a424b6c32275cadacc7a2fa40df7e9140498bf5c8dc48d39923b9ea6f8ecc1c"
+  },
+  {
+    "name": "supplemental-jemalloc-candidate-3",
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "/tmp/astral-mail-codecs-perf/bin/candidate-jemalloc-codec",
+      "/tmp/astral-mail-codecs-perf/codec-inputs.json"
+    ],
+    "started_at": "2026-10-06T13:55:00.432868+00:00",
+    "finished_at": "2026-10-06T13:55:11.268343+00:00",
+    "binary_sha256": "36b946b049819af06fe673b3a5202fb5a7735205aae4aee8d394639e5347cd08",
+    "csv_sha256": "e53d3164b8b554eb0ce5907212387853ed65534bba589d9c37ec14cc0ab5a665"
+  }
+]

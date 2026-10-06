@@ -1,9 +1,10 @@
 # Benchmarks
 
-Every performance benchmark uses unmodified files from published Python packages.
+The package benchmarks use unmodified files from published Python packages.
 The [corpus](../crates/astral-mail-headers/tests/fixtures/packages/manifest.json)
 contains nine wheel `METADATA` files, their nine `WHEEL` files, and requests'
-sdist `PKG-INFO`. Synthetic inputs remain correctness tests only.
+sdist `PKG-INFO`. Synthetic inputs exercise correctness and the separate codec
+comparison below.
 
 | Package | METADATA bytes | Header bytes | Fields | Requires-Dist |
 | --- | ---: | ---: | ---: | ---: |
@@ -98,6 +99,13 @@ by Cargo and run the second command three times:
 cargo +ohm -Zohm-defaults=no bench --locked --bench metadata-extraction --no-run
 taskset -c 0 <benchmark-executable> --bench --samples 31 --sample-ms 20 --warmup-ms 100
 ```
+
+## Codec dependency comparison
+
+For the `encoding_rs` replacement comparison, see the
+[measurement report](../benchmarks/results/encoding-rs-removal/README.md). It
+includes package-corpus timings and separate synthetic encoded-header cases to
+exercise the replaced codecs, which the package corpus does not use.
 
 ## CodSpeed
 

@@ -1,0 +1,81 @@
+{
+  "worktree": "/home/dev-user/code/oss/astral-mail-headers-codecs",
+  "revision": "088ceb6fe08059602f762a999b5a3bb4c5a9bace",
+  "source_sha256": {
+    "Cargo.toml": "0fd704bd5235edc971c332ed9aff3e68632e92caa22abe28bd119b75c02f1992",
+    "Cargo.lock": "e73cbccc9583b807d4002bcd3fbd93a6b10b9614669b2cdece5e5f29a7384c5b",
+    "crates/astral-mail-headers/Cargo.toml": "95e2abc8824a291c16306a6ccf339dba71fbf3a2aa6b571cc388227b4117a27e",
+    "crates/astral-mail-headers/src/decode.rs": "bfa89465a21e6067432078a790a80ea70aa3f4ac1acaa4a02855b3911d04f101",
+    "crates/astral-mail-headers/benches/metadata-extraction.rs": "a1919dae6d0cfd630318316e89cb12af794d80fbfae81c977802c4a1fc4bd290"
+  },
+  "builds": [
+    {
+      "allocator": "system",
+      "kind": "corpus",
+      "command": [
+        "cargo",
+        "+ohm",
+        "-Zohm-defaults=no",
+        "bench",
+        "--locked",
+        "--bench",
+        "metadata-extraction",
+        "--no-run"
+      ],
+      "binary": "candidate-system",
+      "binary_sha256": "a23b17a1d68d2057c6c9e6ed6c590f3e81fab4a71424e96f8179fd80b57ee85f"
+    },
+    {
+      "allocator": "system",
+      "kind": "supplemental",
+      "command": [
+        "cargo",
+        "+ohm",
+        "-Zohm-defaults=no",
+        "build",
+        "--release",
+        "--locked",
+        "--example",
+        "codec_timing"
+      ],
+      "binary": "candidate-system-codec",
+      "binary_sha256": "a59fea7764b24f3232fc18361d956d386630428b76d43f08f7ce6ec0ff90ca96"
+    },
+    {
+      "allocator": "jemalloc",
+      "kind": "corpus",
+      "command": [
+        "cargo",
+        "+ohm",
+        "-Zohm-defaults=no",
+        "bench",
+        "--locked",
+        "--bench",
+        "metadata-extraction",
+        "--no-run",
+        "--features",
+        "benchmark-jemalloc"
+      ],
+      "binary": "candidate-jemalloc",
+      "binary_sha256": "5a77e424b88e641395c56d0ffd2cd0c6b5bcc269ce72304ef5cd56e50223ae9a"
+    },
+    {
+      "allocator": "jemalloc",
+      "kind": "supplemental",
+      "command": [
+        "cargo",
+        "+ohm",
+        "-Zohm-defaults=no",
+        "build",
+        "--release",
+        "--locked",
+        "--example",
+        "codec_timing",
+        "--features",
+        "benchmark-jemalloc"
+      ],
+      "binary": "candidate-jemalloc-codec",
+      "binary_sha256": "36b946b049819af06fe673b3a5202fb5a7735205aae4aee8d394639e5347cd08"
+    }
+  ]
+}
