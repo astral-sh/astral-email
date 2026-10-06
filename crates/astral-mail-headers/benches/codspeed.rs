@@ -1,4 +1,4 @@
-//! Parsing, metadata extraction, and header decoding benchmarks.
+//! Parsing and owned extraction benchmarks using published Python package metadata.
 
 #![allow(missing_docs, reason = "Criterion macros generate public functions")]
 
@@ -13,14 +13,14 @@ use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 
 fn extract(c: &mut Criterion) {
     let mut group = c.benchmark_group("parse-and-extract");
-    for case in support::cases() {
+    for case in support::benchmark_cases() {
         assert_eq!(
             support::astral_mail_headers(&case.input, case.kind),
             support::mailparse(&case.input, case.kind),
             "{}",
             case.name,
         );
-        group.throughput(Throughput::Bytes(case.input.len() as u64));
+        group.throughput(Throughput::Elements(1));
         group.bench_function(&case.name, |b| {
             b.iter(|| {
                 black_box(support::astral_mail_headers(
@@ -35,8 +35,8 @@ fn extract(c: &mut Criterion) {
 
 fn parse(c: &mut Criterion) {
     let mut group = c.benchmark_group("parse");
-    for (fixture, input) in support::fixtures() {
-        group.throughput(Throughput::Bytes(input.len() as u64));
+    for (fixture, input) in support::benchmark_fixtures() {
+        group.throughput(Throughput::Bytes(fixture.body_start as u64));
         group.bench_function(&fixture.name, |b| {
             b.iter(|| {
                 black_box(Message::parse(black_box(&input)));
@@ -46,25 +46,5 @@ fn parse(c: &mut Criterion) {
     group.finish();
 }
 
-fn decode(c: &mut Criterion) {
-    let mut group = c.benchmark_group("decode");
-    for case in support::cases().into_iter().filter(|case| {
-        case.name.starts_with("synthetic-")
-            || matches!(case.name.as_str(), "folds" | "encoded-words")
-    }) {
-        let message = Message::parse(&case.input);
-        let Some(header) = message.first("Classifier") else {
-            continue;
-        };
-        group.throughput(Throughput::Bytes(header.raw_value().len() as u64));
-        group.bench_function(&case.name, |b| {
-            b.iter(|| {
-                black_box(black_box(header).decoded_value().unwrap());
-            });
-        });
-    }
-    group.finish();
-}
-
-criterion_group!(benches, extract, parse, decode);
+criterion_group!(benches, extract, parse);
 criterion_main!(benches);

@@ -17,6 +17,8 @@ pub(crate) struct Case {
     pub(crate) name: String,
     pub(crate) input: Vec<u8>,
     pub(crate) kind: Kind,
+    #[allow(dead_code, reason = "Reported by the timing harness")]
+    pub(crate) header_bytes: usize,
 }
 
 #[derive(Deserialize)]
@@ -35,13 +37,26 @@ pub(crate) struct ExpectedHeader {
 }
 
 pub(crate) fn fixtures() -> Vec<(Fixture, Vec<u8>)> {
+    load_fixtures(include_str!("../fixtures/uv/manifest.json"), "uv")
+}
+
+/// Unmodified metadata from the published distributions used for performance tests.
+pub(crate) fn benchmark_fixtures() -> Vec<(Fixture, Vec<u8>)> {
+    load_fixtures(
+        include_str!("../fixtures/packages/manifest.json"),
+        "packages",
+    )
+}
+
+fn load_fixtures(manifest: &str, directory: &str) -> Vec<(Fixture, Vec<u8>)> {
     #[derive(Deserialize)]
     struct Manifest {
         cases: Vec<Fixture>,
     }
-    let manifest: Manifest =
-        serde_json::from_str(include_str!("../fixtures/uv/manifest.json")).unwrap();
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/uv");
+    let manifest: Manifest = serde_json::from_str(manifest).unwrap();
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(directory);
     manifest
         .cases
         .into_iter()
@@ -52,9 +67,14 @@ pub(crate) fn fixtures() -> Vec<(Fixture, Vec<u8>)> {
         .collect()
 }
 
-pub(crate) fn cases() -> Vec<Case> {
+/// Resolution, publication, and WHEEL workloads from real package releases only.
+pub(crate) fn benchmark_cases() -> Vec<Case> {
+    extraction_cases(benchmark_fixtures())
+}
+
+fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
     let mut cases = Vec::new();
-    for (fixture, input) in fixtures() {
+    for (fixture, input) in fixtures {
         let kinds: &[Kind] = match fixture.kind {
             Kind::Wheel => &[Kind::Wheel],
             Kind::Resolution | Kind::Publish => &[Kind::Resolution, Kind::Publish],
@@ -69,9 +89,16 @@ pub(crate) fn cases() -> Vec<Case> {
                 name: format!("{}-{suffix}", fixture.name),
                 input: input.clone(),
                 kind,
+                header_bytes: fixture.body_start,
             });
         }
     }
+    cases
+}
+
+/// Compatibility fixtures and generated edge cases belong to correctness tests.
+pub(crate) fn conformance_cases() -> Vec<Case> {
+    let mut cases = extraction_cases(fixtures());
     for count in [10, 100, 1_000] {
         let mut input = "Metadata-Version: 2.4\nName: demo\nVersion: 1.0\n".to_owned();
         for index in 0..count {
@@ -81,6 +108,7 @@ pub(crate) fn cases() -> Vec<Case> {
         }
         cases.push(Case {
             name: format!("dependencies-{count}"),
+            header_bytes: input.len(),
             input: input.into_bytes(),
             kind: Kind::Resolution,
         });
@@ -95,6 +123,7 @@ pub(crate) fn cases() -> Vec<Case> {
         }
         cases.push(Case {
             name: name.to_owned(),
+            header_bytes: input.len(),
             input: input.into_bytes(),
             kind: Kind::Publish,
         });
@@ -111,6 +140,7 @@ pub(crate) fn cases() -> Vec<Case> {
         );
         cases.push(Case {
             name: format!("synthetic-{name}"),
+            header_bytes: input.len(),
             input: input.into_bytes(),
             kind,
         });

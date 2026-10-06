@@ -80,7 +80,7 @@ fn percentile(samples: &[f64], percentile: usize) -> f64 {
 
 fn main() {
     let options = Options::parse();
-    let cases: Vec<_> = support::cases()
+    let cases: Vec<_> = support::benchmark_cases()
         .into_iter()
         .filter(|case| {
             options
@@ -120,7 +120,7 @@ fn main() {
         options.warmup.as_millis(),
     );
     println!(
-        "case,bytes,astral_mail_headers_ns,mailparse_ns,speedup,astral_mail_headers_p10_ns,astral_mail_headers_p90_ns,mailparse_p10_ns,mailparse_p90_ns"
+        "case,bytes,header_bytes,astral_mail_headers_ns,mailparse_ns,speedup,astral_mail_headers_p10_ns,astral_mail_headers_p90_ns,mailparse_p10_ns,mailparse_p90_ns"
     );
     for case in cases {
         let astral = || support::astral_mail_headers(black_box(&case.input), case.kind);
@@ -152,9 +152,10 @@ fn main() {
         let astral_median = percentile(&astral_samples, 50);
         let baseline_median = percentile(&baseline_samples, 50);
         println!(
-            "{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3}",
+            "{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3}",
             case.name,
             case.input.len(),
+            case.header_bytes,
             astral_median,
             baseline_median,
             baseline_median / astral_median,

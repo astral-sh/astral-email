@@ -10,44 +10,15 @@ A high-performance email header parser designed for Python packaging.
 
 ## Benchmarks
 
-### Resolution metadata
+All performance benchmarks use unmodified `METADATA`, `PKG-INFO`, and `WHEEL`
+files from published Python packages: backcall, six, packaging, requests, Black,
+setuptools, NumPy, pandas, and Apache Airflow. The corpus covers small wheel
+headers, ordinary package metadata, long folded licenses, large descriptions,
+and hundreds of dependencies.
 
-Parse package metadata, extract owned fields used for dependency resolution, and
-drop the output (`astral_mail_headers::Message`).
-
-| Parser              | maturin 1.4.0 | tqdm 4.66.1 | Black 24.8.0 |
-| ------------------- | ------------: | ----------: | -----------: |
-| astral-mail-headers |          1.51 |        3.98 |         3.30 |
-| mailparse           |          6.55 |       18.21 |        12.61 |
-
-<sub>Times in microseconds (µs);
-[lower is better](https://github.com/astral-sh/astral-mail-headers/blob/dd7752820f4f2fb1005fd5bdb3646da20c36fc33/benchmarks/readme/README.md).</sub>
-
-### Publishing metadata
-
-Parse package metadata, extract owned fields and the description used for
-publishing, and drop the output (`astral_mail_headers::Message`).
-
-| Parser              | maturin 1.4.0 | tqdm 4.66.1 | Black 24.8.0 |
-| ------------------- | ------------: | ----------: | -----------: |
-| astral-mail-headers |          3.00 |        9.99 |        11.38 |
-| mailparse           |         13.43 |       41.80 |        29.80 |
-
-<sub>Times in microseconds (µs);
-[lower is better](https://github.com/astral-sh/astral-mail-headers/blob/dd7752820f4f2fb1005fd5bdb3646da20c36fc33/benchmarks/readme/README.md).</sub>
-
-### Wheel metadata
-
-Parse WHEEL headers, collect owned names and decoded values, and drop the output
-(`astral_mail_headers::Message`).
-
-| Parser              | maturin 1.4.0 | tqdm 4.66.1 |
-| ------------------- | ------------: | ----------: |
-| astral-mail-headers |          0.55 |        0.57 |
-| mailparse           |          1.37 |        1.19 |
-
-<sub>Times in microseconds (µs);
-[lower is better](https://github.com/astral-sh/astral-mail-headers/blob/dd7752820f4f2fb1005fd5bdb3646da20c36fc33/benchmarks/readme/README.md).</sub>
+We measure parsing, owned field extraction for resolution and publishing, and
+allocations. The wall-clock benchmark compares against mailparse with the system
+allocator or jemalloc. See the [corpus and benchmark commands](docs/performance.md).
 
 ## Example usage
 
