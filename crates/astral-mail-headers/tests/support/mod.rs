@@ -38,13 +38,21 @@ pub(crate) struct ExpectedHeader {
 
 /// Unmodified metadata from the published distributions used for performance tests.
 pub(crate) fn benchmark_fixtures() -> Vec<(Fixture, Vec<u8>)> {
+    load_fixtures(
+        include_str!("../fixtures/packages/manifest.json"),
+        "packages",
+    )
+}
+
+fn load_fixtures(manifest: &str, directory: &str) -> Vec<(Fixture, Vec<u8>)> {
     #[derive(Deserialize)]
     struct Manifest {
         cases: Vec<Fixture>,
     }
-    let manifest: Manifest =
-        serde_json::from_str(include_str!("../fixtures/packages/manifest.json")).unwrap();
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/packages");
+    let manifest: Manifest = serde_json::from_str(manifest).unwrap();
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(directory);
     manifest
         .cases
         .into_iter()
@@ -57,8 +65,12 @@ pub(crate) fn benchmark_fixtures() -> Vec<(Fixture, Vec<u8>)> {
 
 /// Dependency, publication, and WHEEL metadata extraction from real packages.
 pub(crate) fn benchmark_cases() -> Vec<Case> {
+    extraction_cases(benchmark_fixtures())
+}
+
+fn extraction_cases(fixtures: Vec<(Fixture, Vec<u8>)>) -> Vec<Case> {
     let mut cases = Vec::new();
-    for (fixture, input) in benchmark_fixtures() {
+    for (fixture, input) in fixtures {
         let kinds: &[Kind] = match fixture.kind {
             Kind::Wheel => &[Kind::Wheel],
             Kind::Resolution | Kind::Publish => &[Kind::Resolution, Kind::Publish],
