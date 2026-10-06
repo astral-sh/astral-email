@@ -67,6 +67,7 @@ impl<'a> Header<'a> {
     /// # Errors
     ///
     /// Returns an error for invalid Base64 or an unsupported declared charset.
+    #[inline]
     pub fn decoded_value(&self) -> Result<Cow<'a, str>, DecodeError> {
         decode::decode(self.value)
     }

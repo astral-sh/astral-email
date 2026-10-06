@@ -37,11 +37,14 @@ impl std::error::Error for DecodeError {}
 #[inline]
 pub(crate) fn decode(raw: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
     let text = decode_utf8(raw);
-    if !memchr::memchr2_iter(b'\n', b'=', text.as_bytes()).any(|offset| {
-        matches!(
-            &text.as_bytes()[offset..],
-            [b'=', b'?', ..] | [b'\n', b' ' | b'\t', ..]
-        )
+    let bytes = text.as_bytes();
+    // Scanning for '?' skips the '=' common in version constraints.
+    if !memchr::memchr2_iter(b'\n', b'?', bytes).any(|offset| {
+        if bytes[offset] == b'?' {
+            offset > 0 && bytes[offset - 1] == b'='
+        } else {
+            matches!(bytes.get(offset + 1), Some(b' ' | b'\t'))
+        }
     }) {
         return Ok(text);
     }
@@ -445,6 +448,8 @@ mod tests {
         for value in [
             "",
             "plain value",
+            "?query?=literal",
+            "dependency>=1.0,!=2.0,<=3.0",
             "  café\t ",
             "=?utf-8?x?literal?=",
             "=?utf-8?q?unfinished",
